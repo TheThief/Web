@@ -32,25 +32,17 @@ public:
 	T* operator =(T*rhs) { ptr=rhs; return ptr; }
 };
 
-template <class T>
-class refcounted_object
+class refcounted_base
 {
 protected:
 	int iRefcount;
-	T object;
 
 public:
-	refcounted_object() : iRefcount(0), object() { }
-	refcounted_object(T rhs) : iRefcount(0), object(rhs) { }
-	~refcounted_object()
+	refcounted_base() : iRefcount(0) { }
+	virtual ~refcounted_base()
 	{
 		assert(iRefcount==0);
 	}
-
-	operator T&() { return object; }
-	//T* operator ->() { return ptr; }
-	//T operator *() { return *ptr; }
-	T& operator =(T rhs) { object=rhs; return object; }
 
 	void AddRef()
 	{
@@ -68,23 +60,65 @@ public:
 };
 
 template <class T>
-class refcounted_ptr
+class refcounted_object : public refcounted_base
 {
 protected:
-	refcounted_object<T>* ptr;
+	T object;
 
 public:
-	refcounted_ptr() : ptr(NULL) { }
-	refcounted_ptr(T* rhs) : ptr(rhs)
-	{
-		if (ptr)
-		{
-			ptr->AddRef();
-		}
-	}
-	refcounted_ptr(const refcounted_ptr& rhs) : refcounted_ptr(rhs.ptr) { }
+	refcounted_object() : refcounted_base(), object() { }
+	refcounted_object(T rhs) : refcounted_base(), object(rhs) { }
 
-	~refcounted_ptr()
+	operator T&() { return object; }
+	//T* operator ->() { return ptr; }
+	//T operator *() { return *ptr; }
+	T& operator =(T rhs) { object=rhs; return object; }
+};
+
+class refcounted_memory : public refcounted_base
+{
+protected:
+	size_t iBytes;
+
+	//refcounted_memory(size_t _iBytes) : refcounted_base(), iBytes(_iBytes) { }
+
+public:
+	//refcounted_object() : refcounted_base(), object() { }
+	//refcounted_object() : refcounted_base(), object() { }
+	//refcounted_object(T rhs) : refcounted_base(), object(rhs) { }
+
+	//operator T&() { return object; }
+	//T* operator ->() { return ptr; }
+	//T operator *() { return *ptr; }
+	//T& operator =(T rhs) { object=rhs; return object; }
+	void* operator new(size_t thissize, size_t iBytes)
+	{
+		refcounted_memory* pNew = (refcounted_memory*)::new byte[thissize+iBytes];
+		pNew->iBytes = iBytes;
+		return pNew;
+	}
+	void operator delete(void* pDel, size_t thissize)
+	{
+		::delete(pDel);
+	}
+
+	template <class T>
+	operator T*()
+	{
+		return (T*)((byte*)this+sizeof(*this));
+	}
+};
+
+class refcounted_base_ptr
+{
+protected:
+	refcounted_base* ptr;
+
+public:
+	refcounted_base_ptr() : ptr(NULL) { }
+	refcounted_base_ptr(const refcounted_base_ptr& rhs) : ptr(rhs.ptr) { }
+
+	virtual ~refcounted_base_ptr()
 	{
 		if (ptr)
 		{
@@ -92,27 +126,40 @@ public:
 		}
 	}
 
-	operator T*() const { return &ptr->object; }
-	T* operator ->() const { return &ptr->object; }
-	T operator *() const { return ptr->object; }
-
-	T* operator =(T* rhs)
+	refcounted_base_ptr& operator =(const refcounted_base_ptr& rhs)
 	{
-		if (rhs)
+		if (rhs.ptr)
 		{
-			rhs->AddRef();
+			rhs.ptr->AddRef();
 		}
 		if (ptr)
 		{
 			ptr->RemoveRef();
 		}
-		ptr = rhs;
-		return ptr;
-	}
-	refcounted_ptr& operator =(const refcounted_ptr& rhs)
-	{
-		operator =(rhs.ptr);
+		ptr = rhs.ptr;
 		return *this;
+	}
+};
+
+template <class T>
+class refcounted_object_ptr : public refcounted_base_ptr
+{
+public:
+	refcounted_object_ptr(const refcounted_object_ptr<T>& rhs) : ((refcounted_object<T>*)ptr)(rhs.ptr)
+	{
+		if (ptr)
+		{
+			((refcounted_object<T>*)ptr)->AddRef();
+		}
+	}
+
+	operator T*() const { return &((refcounted_object<T>*)ptr)->object; }
+	T* operator ->() const { return &((refcounted_object<T>*)ptr)->object; }
+	T operator *() const { return ((refcounted_object<T>*)ptr)->object; }
+
+	refcounted_object_ptr<T>& operator =(const refcounted_object_ptr<T>& rhs)
+	{
+		return refcounted_base_ptr::operator =(rhs)
 	}
 };
 
@@ -120,7 +167,8 @@ template <class T>
 class dynamic_array
 {
 protected:
-	T*ptr;
+	//T*ptr;
+	refcounted_memory*ptr;
 	int iNum;
 	int iMax;
 public:
@@ -130,13 +178,14 @@ public:
 	~dynamic_array()
 	{
 		if (ptr)
-			delete [] ptr;
+			//delete [] ptr;
+			ptr->RemoveRef();
 	}
 
 	T& operator [](int i) const
 	{
 		assert(i>=0 && i<iNum);
-		return ptr[i];
+		return ((T*)*ptr)[i];
 	}
 
 	int Num() const
@@ -152,21 +201,24 @@ public:
 		}
 		int i = iNum;
 		iNum++;
-		ptr[i] = Item;
+		((T*)*ptr)[i] = T(Item);
 		return i;
 	}
 
 	void Expand(int Amount = 10)
 	{
-		int iNewMax = iMax + Amount;
-		T* ptrNew = new T[iNewMax];
+		iMax += Amount;
+		//T* ptrNew = new T[iNewMax];
+		refcounted_memory* ptrNew = new(iMax*sizeof(T)) refcounted_memory;
+		ptrNew->AddRef();
 		if (ptr)
 		{
 			if (iNum>0)
 			{
-				memcpy(ptrNew, ptr, iNum*sizeof(T));
+				memcpy(((T*)*ptrNew), ((T*)*ptr), iNum*sizeof(T));
 			}
-			delete[] ptr;
+			ptr->RemoveRef();
+			delete ptr;
 		}
 		ptr = ptrNew;
 	}
