@@ -20,7 +20,7 @@ void HTTPResponse::sendto(SOCKET s) const
 	for (int i=0; i<Headers.Num(); i++)
 	{
 		n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n,
-			"%s: %s\r\n", Headers[i].Header, Headers[i].Value);
+			"%s: %s\r\n", (const char*)Headers[i].Header, (const char*)Headers[i].Value);
 	}
 
 	n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n, "\r\n");
