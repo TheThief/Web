@@ -364,6 +364,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Include\dynamic_string.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Include\filetree.h"
 				>
 			</File>

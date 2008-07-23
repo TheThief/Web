@@ -1,14 +1,14 @@
 #pragma once
 
 #include <winsock2.h>
-#include "auto_ptr.h"
+#include "dynamic_string.h"
 
 class HTTPHeader
 {
 public:
-	const char* Header;
-	const char* Value;
-	HTTPHeader(const char* _Header=NULL, const char* _Value=NULL)
+	dynamic_string Header;
+	dynamic_string Value;
+	HTTPHeader(dynamic_string _Header=NULL, dynamic_string _Value=NULL)
 		: Header(_Header), Value(_Value) { };
 };
 

@@ -13,6 +13,9 @@ void HTTPResponse::sendto(SOCKET s) const
 	auto_ptr_array<char> send_buffer = new char[SEND_BUFFER_LENGTH];
 	n += sprintf_s(send_buffer, SEND_BUFFER_LENGTH,
 		"HTTP/1.1 %d %s\r\n", iStatus, cpStatus);
+#if !_DEBUG
+	puts(send_buffer);
+#endif
 
 	for (int i=0; i<Headers.Num(); i++)
 	{
@@ -33,8 +36,7 @@ HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, char* _cpStatus, long _iCon
 	: HTTPResponse(_iStatus, _cpStatus), iContentLength(_iContentLength), Content(_Content)
 {
 	Headers.AddItem(HTTPHeader("Content-Type", "text/html"));
-	auto_ptr_array<char> sContentLength = new char[32];
-	sprintf_s(sContentLength, 32, "%d", iContentLength);
+	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
 	Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
 };
 
@@ -74,12 +76,17 @@ void HTTPResponseFile::sendto(SOCKET s) const
 	long iContentLength = _filelength(FileHandle);
 	int n = 0;
 	auto_ptr_array<char> send_buffer = new char[SEND_BUFFER_LENGTH];
-	n = sprintf_s(send_buffer, SEND_BUFFER_LENGTH,
-		"HTTP/1.1 %d %s\r\n"
+	n += sprintf_s(send_buffer, SEND_BUFFER_LENGTH,
+		"HTTP/1.1 %d %s\r\n", iStatus, cpStatus);
+#if !_DEBUG
+	puts(send_buffer);
+#endif
+
+	n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n,
 		"Content-Type: %s/%s\r\n"
 		"Content-Length: %d\r\n"
 		"\r\n",
-		iStatus, cpStatus, ContentType, ContentSubType, iContentLength);
+		ContentType, ContentSubType, iContentLength);
 
 	n = send(s, send_buffer, n, 0);
 #if _DEBUG
