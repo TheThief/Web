@@ -17,7 +17,7 @@ void HTTPResponse::sendto(SOCKET s) const
 	puts(send_buffer);
 #endif
 
-	for (int i=0; i<Headers.Num(); i++)
+	for (size_t i=0; i<Headers.Num(); i++)
 	{
 		n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n,
 			"%s: %s\r\n", (const char*)Headers[i].Header, (const char*)Headers[i].Value);
@@ -93,14 +93,25 @@ void HTTPResponseFile::sendto(SOCKET s) const
 	puts(send_buffer);
 #endif
 
+#if _DEBUG
+	bool bText = ( memcmp(ContentType,"text",5) == 0 );
+	if (!bText)
+	{
+		n = puts("--Non-text-data--");
+		n = puts("");
+	}
+#endif
 	while((n =_read(FileHandle, send_buffer, SEND_BUFFER_LENGTH)) > 0)
 	{
 		n = send(s, send_buffer, n, 0);
 #if _DEBUG
-		if ( memcmp(ContentType,"text",5) == 0 )
+		if (bText)
 		{
 			n = _write(stdout->_file, send_buffer, n);
 		}
 #endif
 	}
+#if _DEBUG
+	n = puts("");
+#endif
 }
