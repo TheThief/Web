@@ -58,6 +58,11 @@ public:
 			delete this;
 		}
 	}
+
+	int GetRefCount() const
+	{
+		return iRefcount;
+	}
 };
 
 template <class T>
@@ -108,21 +113,30 @@ class refcounted_base_ptr
 protected:
 	refcounted_base* ptr;
 
+	void AddRef() const
+	{
+		if (ptr)
+		{
+			ptr->AddRef();
+		}
+	}
+	void RemoveRef() const
+	{
+		if (ptr)
+		{
+			ptr->RemoveRef();
+		}
+	}
+
 public:
 	refcounted_base_ptr() : ptr(NULL) { }
 	refcounted_base_ptr(const refcounted_base_ptr& rhs) : ptr(rhs.ptr)
 	{
-		if (rhs.ptr)
-		{
-			rhs.ptr->AddRef();
-		}
+		AddRef();
 	}
 	refcounted_base_ptr(refcounted_base* const & _ptr) : ptr(_ptr)
 	{
-		if (_ptr)
-		{
-			_ptr->AddRef();
-		}
+		AddRef();
 	}
 	refcounted_base_ptr(void*null) : ptr(NULL)
 	{
@@ -143,21 +157,28 @@ public:
 
 	refcounted_base_ptr& operator =(const refcounted_base_ptr& rhs)
 	{
-		if (rhs.ptr)
-		{
-			rhs.ptr->AddRef();
-		}
-		if (ptr)
-		{
-			ptr->RemoveRef();
-		}
+		// AddRef first to avoid RemoveRef possibly deleting rhs
+		rhs.AddRef();
+		RemoveRef();
 		ptr = rhs.ptr;
 		return *this;
 	}
 
-	operator bool()
+	operator bool() const
 	{
 		return ptr != NULL;
+	}
+
+	int GetRefCount() const
+	{
+		if (ptr)
+		{
+			return ptr->GetRefCount();
+		}
+		else
+		{
+			return 0;
+		}
 	}
 };
 
@@ -204,8 +225,8 @@ class dynamic_array
 {
 protected:
 	refcounted_memory_ptr ptr;
-	int iNum;
-	int iMax;
+	size_t iNum;
+	size_t iMax;
 public:
 	dynamic_array() : ptr(NULL), iNum(0), iMax(0)
 	{
@@ -215,39 +236,44 @@ public:
 	}
 	~dynamic_array()
 	{
-		for (int i=0; i<iNum; i++)
+		for (size_t i=0; i<iNum; i++)
 		{
 			(*this)[i].~T();
 		}
 		ptr = NULL;
 	}
 
-	T& operator [](int i) const
+	T& operator [](size_t i) const
 	{
 		assert(i>=0 && i<iNum);
 		return ((T*)ptr)[i];
 	}
 
-	int Num() const
+	size_t Num() const
 	{
 		return iNum;
 	}
 
-	int AddItem(T& Item)
+	size_t AddItem(T& Item)
 	{
-		if (iNum>=iMax)
+		if (iNum >= iMax)
 		{
-			Expand();
+			ExpandMaxSize();
 		}
-		int i = iNum;
+		size_t i = iNum;
 		iNum++;
 		new(&(((T*)ptr)[i])) T(Item);
 		return i;
 	}
 
-	void Expand(int Amount = 10)
+	void ExpandMaxSize(int Amount = 10)
 	{
-		iMax += Amount;
+		SetMaxSize(iMax + Amount);
+	}
+
+	void SetMaxSize(size_t MaxSize)
+	{
+		iMax = MaxSize;
 		refcounted_memory_ptr ptrNew = new(iMax*sizeof(T)) refcounted_memory();
 		if (ptr)
 		{
@@ -257,5 +283,51 @@ public:
 			}
 		}
 		ptr = ptrNew;
+	}
+
+	void SetSize(size_t Size)
+	{
+		if (iNum > Size)
+		{
+			for (size_t i=Size; i<iNum; i++)
+			{
+				(*this)[i].~T();
+			}
+		}
+
+		if (iMax < Size)
+		{
+			SetMaxSize(Size);
+		}
+
+		if (iNum < Size)
+		{
+			for (size_t i=iNum; i<Size; i++)
+			{
+				new(&(((T*)ptr)[i])) T();
+			}
+		}
+
+		iNum = Size;
+	}
+
+	void clonebuffer()
+	{
+		if (ptr && ptr.GetRefCount() > 1)
+		{
+			if (iNum <= 0)
+			{
+				ptr = NULL;
+			}
+			else
+			{
+				refcounted_memory_ptr ptrNew = new(iNum*sizeof(T)) refcounted_memory();
+				if (ptr)
+				{
+					memcpy((T*)ptrNew, (T*)ptr, iNum*sizeof(T));
+				}
+				ptr = ptrNew;
+			}
+		}
 	}
 };

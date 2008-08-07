@@ -16,9 +16,16 @@ public:
 	dynamic_string(const dynamic_string& rhs) : dynamic_array(rhs), conststring(rhs.conststring) { }
 	dynamic_string(const char* _conststring) : dynamic_array(), conststring(_conststring) { }
 
-	int Len() const
+	size_t Len() const
 	{
-		return Num();
+		if (conststring)
+		{
+			return strlen(conststring);
+		}
+		else
+		{
+			return Num();
+		}
 	}
 
 	operator const char*() const
@@ -33,18 +40,41 @@ public:
 		}
 	}
 
+	operator char*()
+	{
+		clonebuffer();
+		return ptr;
+	}
+
 	static dynamic_string printf(const char* _Format, ...)
 	{
-	    va_list args;
-	    va_start( args, _Format );
+		va_list args;
+		va_start( args, _Format );
 
 		int n = _vscprintf(_Format, args) + 1; // + 1 for '\0'
 
 		dynamic_string newstring;
-		newstring.Expand(n);
-		newstring.iNum = n;
+		newstring.SetSize(n);
 		vsprintf_s(newstring.ptr, n, _Format, args);
 
 		return newstring;
+	}
+
+	void clonebuffer()
+	{
+		if (conststring)
+		{
+			size_t iLen = Len();
+			if (iLen > 0)
+			{
+				SetSize(iLen + 1);
+				memcpy((char*)ptr, conststring, iNum*sizeof(char));
+			}
+			conststring = NULL;
+		}
+		else
+		{
+			dynamic_array::clonebuffer();
+		}
 	}
 };
