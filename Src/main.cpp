@@ -79,7 +79,8 @@ int main(int argc, char *argv[])
 		serv_addr.sin_port = htons(port);
 		if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 			error("ERROR on binding");
-		listen(sockfd,5);
+		if (listen(sockfd,5) < 0)
+			error("ERROR on listening");
 		FD_SET(sockfd, &socketset);
 	}
 
@@ -97,7 +98,8 @@ int main(int argc, char *argv[])
 		serv_addr6.sin6_port = htons(port);
 		if (bind(sockfd6, (struct sockaddr *) &serv_addr6, sizeof(serv_addr6)) < 0)
 			error("ERROR on binding");
-		listen(sockfd6,5);
+		if (listen(sockfd6,5) < 0)
+			error("ERROR on listening");
 		FD_SET(sockfd6, &socketset);
 	}
 
@@ -106,9 +108,10 @@ int main(int argc, char *argv[])
 
 	while (1)
 	{
-		if (select(0, &socketset, NULL, NULL, NULL) == SOCKET_ERROR)
+		fd_set selectedset = socketset;
+		if (select(0, &selectedset, NULL, NULL, NULL) == SOCKET_ERROR)
 			error("ERROR on select");
-		if (FD_ISSET(sockfd, &socketset))
+		if (FD_ISSET(sockfd, &selectedset))
 		{
 			socklen_t clilen;
 			struct sockaddr_in cli_addr;
@@ -119,7 +122,7 @@ int main(int argc, char *argv[])
 				error("ERROR on accept");
 			QueueUserWorkItem(ThreadProc, (LPVOID)newsockfd, 0);
 		}
-		if (FD_ISSET(sockfd6, &socketset))
+		if (FD_ISSET(sockfd6, &selectedset))
 		{
 			socklen_t clilen6;
 			struct sockaddr_in6 cli_addr6;
