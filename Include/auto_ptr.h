@@ -266,27 +266,43 @@ public:
 		return i;
 	}
 
-	void ExpandMaxSize(int Amount = 10)
+	void ExpandMaxSize(int Amount = 32)
 	{
 		SetMaxSize(iMax + Amount);
 	}
 
 	void SetMaxSize(size_t MaxSize)
 	{
-		iMax = MaxSize;
-		refcounted_memory_ptr ptrNew = new(iMax*sizeof(T)) refcounted_memory();
-		if (ptr)
+		assert(MaxSize >= iNum);
+		if (iMax != MaxSize)
 		{
-			if (iNum>0)
+			iMax = MaxSize;
+			if (MaxSize <= 0)
 			{
-				memcpy((T*)ptrNew, (T*)ptr, iNum*sizeof(T));
+				ptr = NULL;
+			}
+			else
+			{
+				refcounted_memory_ptr ptrNew = new(iMax*sizeof(T)) refcounted_memory();
+				if (ptr)
+				{
+					if (iNum>0)
+					{
+						memcpy((T*)ptrNew, (T*)ptr, iNum*sizeof(T));
+					}
+				}
+				ptr = ptrNew;
 			}
 		}
-		ptr = ptrNew;
 	}
 
 	void SetSize(size_t Size)
 	{
+		if (Size > iNum)
+		{
+			clonebuffer();
+		}
+
 		if (iNum > Size)
 		{
 			for (size_t i=Size; i<iNum; i++)
@@ -297,7 +313,7 @@ public:
 
 		if (iMax < Size)
 		{
-			SetMaxSize(Size);
+			SetMaxSize(Size + 32);
 		}
 
 		if (iNum < Size)
@@ -311,17 +327,19 @@ public:
 		iNum = Size;
 	}
 
-	void clonebuffer()
+	void clonebuffer(size_t iSlack = 32)
 	{
 		if (ptr && ptr.GetRefCount() > 1)
 		{
 			if (iNum <= 0)
 			{
 				ptr = NULL;
+				iMax = 0;
 			}
 			else
 			{
-				refcounted_memory_ptr ptrNew = new(iNum*sizeof(T)) refcounted_memory();
+				iMax = iNum + iSlack;
+				refcounted_memory_ptr ptrNew = new(iMax*sizeof(T)) refcounted_memory();
 				if (ptr)
 				{
 					memcpy((T*)ptrNew, (T*)ptr, iNum*sizeof(T));

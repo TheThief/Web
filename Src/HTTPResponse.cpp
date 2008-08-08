@@ -38,6 +38,7 @@ HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, char* _cpStatus, long _iCon
 	Headers.AddItem(HTTPHeader("Content-Type", "text/html"));
 	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
 	Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
+	Headers.AddItem(HTTPHeader("Cache-Control", "public, max-age=3600"));
 };
 
 void HTTPResponseHTML::sendto(SOCKET s) const
@@ -74,33 +75,32 @@ HTTPResponseFile::~HTTPResponseFile()
 void HTTPResponseFile::sendto(SOCKET s) const
 {
 	long iContentLength = _filelength(FileHandle);
-	int n = 0;
-	auto_ptr_array<char> send_buffer = new char[SEND_BUFFER_LENGTH];
-	n += sprintf_s(send_buffer, SEND_BUFFER_LENGTH,
-		"HTTP/1.1 %d %s\r\n", iStatus, cpStatus);
+	dynamic_string sResponse;
+	sResponse += dynamic_string::printf("HTTP/1.1 %d %s\r\n", iStatus, cpStatus);
 #if !_DEBUG
-	puts(send_buffer);
+	puts(sResponse);
 #endif
 
-	n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n,
-		"Content-Type: %s/%s\r\n"
-		"Content-Length: %d\r\n"
-		"\r\n",
-		ContentType, ContentSubType, iContentLength);
+	sResponse += dynamic_string::printf("Content-Type: %s/%s\r\n", ContentType, ContentSubType);
+	sResponse += dynamic_string::printf("Content-Length: %d\r\n", iContentLength);
+	sResponse += dynamic_string("Cache-Control: public, max-age=3600\r\n");
+	sResponse += dynamic_string("\r\n");
 
-	n = send(s, send_buffer, n, 0);
+	send(s, sResponse, sResponse.Len(), 0);
 #if _DEBUG
-	puts(send_buffer);
+	puts(sResponse);
 #endif
 
 #if _DEBUG
 	bool bText = ( memcmp(ContentType,"text",5) == 0 );
 	if (!bText)
 	{
-		n = puts("--Non-text-data--");
-		n = puts("");
+		puts("--Non-text-data--");
+		puts("");
 	}
 #endif
+	int n = 0;
+	auto_ptr_array<char> send_buffer = new char[SEND_BUFFER_LENGTH];
 	while((n =_read(FileHandle, send_buffer, SEND_BUFFER_LENGTH)) > 0)
 	{
 		n = send(s, send_buffer, n, 0);

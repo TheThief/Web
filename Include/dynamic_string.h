@@ -16,6 +16,35 @@ public:
 	dynamic_string(const dynamic_string& rhs) : dynamic_array(rhs), conststring(rhs.conststring) { }
 	dynamic_string(const char* _conststring) : dynamic_array(), conststring(_conststring) { }
 
+	dynamic_string& operator +=(const dynamic_string& rhs)
+	{
+		size_t irLen = rhs.Len();
+		if (irLen > 0)
+		{
+			size_t iLen = Len();
+			size_t iNewSize = iLen + irLen + 1; // + 1 for null terminator
+			clonebuffer(irLen + 32);
+			SetSize(iNewSize);
+			memcpy((char*)ptr + iLen, (const char*)rhs, (irLen + 1)*sizeof(char));
+		}
+
+		return *this;
+	}
+
+	// Including null terminator
+	size_t Size() const
+	{
+		if (conststring)
+		{
+			return strlen(conststring) + 1; // + 1 for null terminator
+		}
+		else
+		{
+			return Num();
+		}
+	}
+
+	// Excluding null terminator
 	size_t Len() const
 	{
 		if (conststring)
@@ -24,7 +53,15 @@ public:
 		}
 		else
 		{
-			return Num();
+			size_t iNum = Num();
+			if (iNum > 0)
+			{
+				return Num() - 1; // discount null terminator
+			}
+			else
+			{
+				return 0;
+			}
 		}
 	}
 
@@ -34,14 +71,19 @@ public:
 		{
 			return conststring;
 		}
-		else
+		else if (ptr)
 		{
 			return ptr;
+		}
+		else
+		{
+			return "";
 		}
 	}
 
 	operator char*()
 	{
+		assert(Len() > 0);
 		clonebuffer();
 		return ptr;
 	}
@@ -51,30 +93,39 @@ public:
 		va_list args;
 		va_start( args, _Format );
 
-		int n = _vscprintf(_Format, args) + 1; // + 1 for '\0'
+		size_t iNewSize = _vscprintf(_Format, args) + 1; // + 1 for null terminator
 
 		dynamic_string newstring;
-		newstring.SetSize(n);
-		vsprintf_s(newstring.ptr, n, _Format, args);
+		newstring.SetSize(iNewSize);
+		vsprintf_s(newstring.ptr, iNewSize, _Format, args);
 
 		return newstring;
 	}
 
-	void clonebuffer()
+	void clonebuffer(size_t iSlack = 32)
 	{
-		if (conststring)
+		size_t iLen = Len();
+		if ( iLen <= 0 )
 		{
-			size_t iLen = Len();
-			if (iLen > 0)
-			{
-				SetSize(iLen + 1);
-				memcpy((char*)ptr, conststring, iNum*sizeof(char));
-			}
+			SetSize(0);
+			SetMaxSize(0);
 			conststring = NULL;
 		}
 		else
 		{
-			dynamic_array::clonebuffer();
+			if (conststring)
+			{
+				size_t iNewSize = iLen + 1; // + 1 for null terminator
+				size_t iNewMaxSize = iNewSize + iSlack;
+				SetMaxSize(iNewMaxSize);
+				SetSize(iNewSize);
+				memcpy((char*)ptr, conststring, iNum*sizeof(char));
+				conststring = NULL;
+			}
+			else
+			{
+				dynamic_array::clonebuffer(iSlack);
+			}
 		}
 	}
 };
