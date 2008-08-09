@@ -7,11 +7,13 @@
 #include <share.h>
 #include <io.h>
 
+#include "../include/settings.h"
 #include "../include/responses.h"
 #include "../include/auto_ptr.h"
 #include "../include/filetree.h"
 
-const int port = 10000;
+Settings _settings;
+const int port = _settings.port;
 
 
 DWORD WINAPI ThreadProc(LPVOID lpParameter);
