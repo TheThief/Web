@@ -39,6 +39,7 @@ HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, char* _cpStatus, long _iCon
 	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
 	Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
 	Headers.AddItem(HTTPHeader("Cache-Control", "public, max-age=3600"));
+	Headers.AddItem(HTTPHeader("Connection", "close"));
 };
 
 void HTTPResponseHTML::sendto(SOCKET s) const
@@ -83,7 +84,8 @@ void HTTPResponseFile::sendto(SOCKET s) const
 
 	sResponse += dynamic_string::printf("Content-Type: %s/%s\r\n", ContentType, ContentSubType);
 	sResponse += dynamic_string::printf("Content-Length: %d\r\n", iContentLength);
-	sResponse += dynamic_string("Cache-Control: public, max-age=3600\r\n");
+	sResponse += "Cache-Control: public, max-age=3600\r\n";
+	sResponse += "Connection: close\r\n";
 	sResponse += dynamic_string("\r\n");
 
 	send(s, sResponse, sResponse.Len(), 0);
