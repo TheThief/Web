@@ -13,8 +13,7 @@
 #include "../include/filetree.h"
 
 Settings _settings;
-const int port = _settings.port;
-
+char *confFile = "web.conf";
 
 DWORD WINAPI ThreadProc(LPVOID lpParameter);
 void dostuff(SOCKET);
@@ -51,6 +50,13 @@ void error(char *msg)
 
 int main(int argc, char *argv[])
 {
+	if (argc > 1) confFile = argv[1];
+	errno_t err = 0;
+	if ((err = _access_s( "web.conf", 0 )) == 0 ){
+		_settings.load("web.conf");
+	}else{
+		_settings.save("web.conf");
+	}
 	WSADATA wsaData;
 	if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != 0 )
 		error("ERROR initializing Winsock");
@@ -78,7 +84,7 @@ int main(int argc, char *argv[])
 		ZeroMemory(&serv_addr, sizeof(serv_addr));
 		serv_addr.sin_family = AF_INET;
 		serv_addr.sin_addr.s_addr = INADDR_ANY;
-		serv_addr.sin_port = htons(port);
+		serv_addr.sin_port = htons(_settings.port);
 		if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 			error("ERROR on binding");
 		if (listen(sockfd,5) < 0)
@@ -97,7 +103,7 @@ int main(int argc, char *argv[])
 		ZeroMemory(&serv_addr6, sizeof(serv_addr6));
 		serv_addr6.sin6_family = AF_INET6;
 		serv_addr6.sin6_addr = in6addr_any;
-		serv_addr6.sin6_port = htons(port);
+		serv_addr6.sin6_port = htons(_settings.port);
 		if (bind(sockfd6, (struct sockaddr *) &serv_addr6, sizeof(serv_addr6)) < 0)
 			error("ERROR on binding");
 		if (listen(sockfd6,5) < 0)
