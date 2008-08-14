@@ -128,11 +128,13 @@ public:
 		}
 	}
 
-	void SetMaxLen(size_t iNewMaxLen)
+	void SetWritableBufferLen(size_t iNewMaxLen)
 	{
 		size_t iNewMaxSize = iNewMaxLen + 1; // + 1 for null terminator
 		clonebuffer(iNewMaxSize);
 		SetMaxSize(iNewMaxSize);
+		SetSize(iNewMaxSize);
+		memset(ptr, 0, iNewMaxSize);
 	}
 
 	void Normalize()
@@ -162,7 +164,7 @@ public:
 
 	char* GetWritableBuffer()
 	{
-		assert(Len() > 0);
+		assert(MaxLen() > 0);
 		clonebuffer();
 		return ptr;
 	}
