@@ -10,9 +10,10 @@
 using namespace std;
 
 Settings::Settings(){
-	version = 1;
+	version = 2;
 	port = 10000;
 	physical_webroot = new PhysicalFolder("","webroot",0,NULL);
+	mimeTypesFile = "mimetypes.conf";
 }
 
 void Settings::load(string filePath){
@@ -27,6 +28,7 @@ void Settings::load(string filePath){
 				varValue = line.substr(line.find_first_of(" ")+1);
 				varName = Settings::strToLower(varName);
 				if (varName == "port") port = atoi(varValue.c_str());
+				if (varName == "mimetypesfile") mimeTypesFile = varValue;
 				if (varName == "webroot"){
 					physical_webroot->FilePath = varValue.c_str();
 					physical_webroot->FilePath.clonebuffer();
@@ -41,13 +43,15 @@ void Settings::load(string filePath){
 
 void Settings::save(string filePath){
 	FILE *file;
-	file = fopen(filePath.c_str(),"w");
+	fopen_s(&file,filePath.c_str(),"w");
 	fprintf(file, "#Settings file version\n");
 	fprintf(file, "version %d\n",version);
 	fprintf(file, "#Port Number to start on\n");
 	fprintf(file, "port %d\n",port);
 	fprintf(file, "#Folder to serve from\n");
 	fprintf(file, "webroot %s\n",(const char*)physical_webroot->FilePath);
+	fprintf(file, "#File to load Mime types from\n");
+	fprintf(file, "mimetypesfile %s\n",mimeTypesFile.c_str());
 	fclose(file);
 }
 

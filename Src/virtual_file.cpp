@@ -1,4 +1,5 @@
 #include <string.h>
+#include <string>
 
 #include "../include/virtual_file.h"
 
@@ -6,8 +7,10 @@
 #include "../include/auto_ptr.h"
 #include "../include/responses.h"
 #include "../include/HTTPResponse.h"
+#include "../include/mimetypes.h"
 
 const char* pDefaultFile = "index.html";
+extern Mimetypes _mimetypes;
 
 const HTTPResponse* VirtualFolder::GetFromPath(const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
@@ -86,23 +89,11 @@ const HTTPResponse* PhysicalFolder::GetFromPath(const char* pFullPath, const cha
 		}
 		if (err == 0)
 		{
-			dynamic_string content_type = "application";
-			dynamic_string content_subtype = "octet-stream";
 			dynamic_string fileext;
 			fileext.SetLen(32);
 			_splitpath_s(FileName, NULL, 0, NULL, 0, NULL, 0, fileext, 32);
 			fileext.Normalize();
-			if (fileext == ".html" || fileext == ".htm")
-			{
-				content_type = "text";
-				content_subtype = "html";
-			}
-			else if (fileext == ".ico")
-			{
-				content_type = "image";
-				content_subtype = "vnd.microsoft.icon";
-			}
-			return new HTTPResponseFile(200, "OK", FileHandle, content_type, content_subtype);
+			return new HTTPResponseFile(200, "OK", FileHandle, _mimetypes.getType((const char*)fileext).c_str(), _mimetypes.getSubType((const char*)fileext).c_str());
 		}
 		else if (err == ENOENT)
 		{

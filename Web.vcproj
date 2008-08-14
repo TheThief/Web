@@ -348,6 +348,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Src\mimetypes.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Src\responses.cpp"
 				>
 			</File>
@@ -379,6 +383,10 @@
 			</File>
 			<File
 				RelativePath=".\Include\HTTPResponse.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Include\mimetypes.h"
 				>
 			</File>
 			<File

@@ -8,11 +8,13 @@
 #include <io.h>
 
 #include "../include/settings.h"
+#include "../include/mimetypes.h"
 #include "../include/responses.h"
 #include "../include/auto_ptr.h"
 #include "../include/filetree.h"
 
 Settings _settings;
+Mimetypes _mimetypes;
 char *confFile = "web.conf";
 
 DWORD WINAPI ThreadProc(LPVOID lpParameter);
@@ -57,6 +59,7 @@ int main(int argc, char *argv[])
 	}else{
 		_settings.save("web.conf");
 	}
+	_mimetypes.load(_settings.mimeTypesFile);
 	WSADATA wsaData;
 	if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != 0 )
 		error("ERROR initializing Winsock");
@@ -65,7 +68,6 @@ int main(int argc, char *argv[])
 	{
 		error("ERROR initializing Winsock: Incompatible version");
 	}
-
 	fd_set socketset;
 	FD_ZERO(&socketset);
 

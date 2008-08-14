@@ -10,6 +10,7 @@ public:
 	void save(std::string filePath);
 	VirtualFolder* getVirtualFolder();
 	int port;
+	std::string mimeTypesFile;
 private:
 	PhysicalFolder *physical_webroot;
 	std::string strToLower(std::string str);
