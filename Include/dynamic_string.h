@@ -48,12 +48,34 @@ public:
 		// one set and the other not
 		if (!slhs || !srhs)
 		{
-			return true;
+			return false;
 		}
-		return (strcmp(slhs, srhs) == 0);
+		return (_stricmp(slhs, srhs) == 0);
 	}
 
-	// Including null terminator
+	bool operator !=(const dynamic_string& rhs)
+	{
+		return *this != (const char *)rhs;
+	}
+
+	bool operator !=(const char* rhs)
+	{
+		const char* slhs = *this;
+		const char* srhs = rhs;
+		// both empty
+		if (!slhs && !srhs)
+		{
+			return false;
+		}
+		// one set and the other not
+		if (!slhs || !srhs)
+		{
+			return true;
+		}
+		return (_stricmp(slhs, srhs) != 0);
+	}
+
+	// Including null terminator, in bytes
 	size_t Size() const
 	{
 		if (conststring)
@@ -66,7 +88,7 @@ public:
 		}
 	}
 
-	// Excluding null terminator
+	// Excluding null terminator, in characters
 	size_t Len() const
 	{
 		if (conststring)
@@ -87,15 +109,30 @@ public:
 		}
 	}
 
-	void SetLen(size_t iNewLen)
+	// Including null terminator, in bytes
+	size_t MaxSize() const
 	{
-		size_t iNewSize = iNewLen + 1; // + 1 for null terminator
-		clonebuffer(iNewSize + 32);
-		SetSize(iNewSize);
-		if (ptr)
+		return iMax;
+	}
+
+	// Excluding null terminator, in characters
+	size_t MaxLen() const
+	{
+		if (iMax > 0)
 		{
-			((char*)ptr)[iNewLen] = '\0';
+			return iMax - 1; // discount null terminator
 		}
+		else
+		{
+			return 0;
+		}
+	}
+
+	void SetMaxLen(size_t iNewMaxLen)
+	{
+		size_t iNewMaxSize = iNewMaxLen + 1; // + 1 for null terminator
+		clonebuffer(iNewMaxSize);
+		SetMaxSize(iNewMaxSize);
 	}
 
 	void Normalize()
@@ -123,7 +160,7 @@ public:
 		}
 	}
 
-	operator char*()
+	char* GetWritableBuffer()
 	{
 		assert(Len() > 0);
 		clonebuffer();
@@ -168,6 +205,24 @@ public:
 			{
 				dynamic_array::clonebuffer(iSlack);
 			}
+		}
+	}
+
+	void ToLower()
+	{
+		clonebuffer();
+		if (ptr)
+		{
+			_strlwr_s(ptr, Size());
+		}
+	}
+
+	void ToUpper()
+	{
+		clonebuffer();
+		if (ptr)
+		{
+			_strupr_s(ptr, Size());
 		}
 	}
 };
