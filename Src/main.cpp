@@ -228,8 +228,7 @@ void dostuff (SOCKET sock)
 		status400.sendto(sock);
 		return;
 	}
-
-	const HTTPResponse* pResponse = webroot->GetFromPath(URL, URL, sock);
+	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(URL, URL, sock);
 	pResponse->sendto(sock);
 
 	if (pResponse->iStatus == 200)

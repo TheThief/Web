@@ -2,6 +2,7 @@
 
 #include "../include/virtual_file.h"
 
+#include "../include/dynamic_string.h"
 #include "../include/auto_ptr.h"
 #include "../include/responses.h"
 #include "../include/HTTPResponse.h"

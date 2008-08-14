@@ -1,6 +1,7 @@
 #pragma once
 
 #include <winsock2.h>
+#include "dynamic_string.h"
 #include "HTTPResponse.h"
 
 class VirtualObject
@@ -33,11 +34,10 @@ public:
 class PhysicalFolder : public VirtualFolder
 {
 public:
-	const char* FilePath;
+	dynamic_string FilePath;
 
 	virtual const HTTPResponse* GetFromPath(const char* pFullPath, const char* pPartialPath, SOCKET s) const;
-
-	PhysicalFolder(const char* _Name, const char* _FilePath, int _iNumSubObjects, VirtualObject** _ppSubObjects)
+	PhysicalFolder(const char* _Name, dynamic_string _FilePath, int _iNumSubObjects, VirtualObject** _ppSubObjects)
 		: VirtualFolder(_Name, _iNumSubObjects, _ppSubObjects), FilePath(_FilePath)
 	{
 	}
