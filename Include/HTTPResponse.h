@@ -16,33 +16,36 @@ class HTTPResponse
 {
 public:
 	__int16 iStatus;
-	const char* cpStatus;
+	dynamic_string cpStatus;
 	dynamic_array<HTTPHeader> Headers;
 
 protected:
-	HTTPResponse(__int16 _iStatus, const char* _cpStatus) : iStatus(_iStatus), cpStatus(_cpStatus) {};
-	void sendto(SOCKET s) const;
+	HTTPResponse(__int16 _iStatus, dynamic_string _cpStatus);
+
+public:
+	virtual void sendto(SOCKET s) const;
 };
 
 class HTTPResponseHTML : public HTTPResponse
 {
 protected:
 	long iContentLength;
-	const char* Content;
+	dynamic_string Content;
 
 public:
-	HTTPResponseHTML(__int16 _iStatus, char* _cpStatus, long _iContentLength, const char* _Content);
-	void sendto(SOCKET s) const;
+	HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content);
+	virtual void sendto(SOCKET s) const;
 };
 
 class HTTPResponseFile : public HTTPResponse
 {
 public:
-	const char* ContentType;
-	const char* ContentSubType;
+	dynamic_string ContentType;
+	dynamic_string ContentSubType;
 	int FileHandle;
 
-	HTTPResponseFile(__int16 _iStatus, const char* _cpStatus, const char* FileName);
+	HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, int _FileHandle, dynamic_string _ContentType, dynamic_string _ContentSubType);
+	HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, dynamic_string FileName, dynamic_string _ContentType, dynamic_string _ContentSubType);
 	~HTTPResponseFile();
-	void sendto(SOCKET s) const;
+	virtual void sendto(SOCKET s) const;
 };

@@ -164,6 +164,11 @@ public:
 		return *this;
 	}
 
+	bool operator ==(const refcounted_base_ptr& rhs)
+	{
+		return ptr == rhs.ptr;
+	}
+
 	operator bool() const
 	{
 		return ptr != NULL;

@@ -221,7 +221,21 @@ void dostuff (SOCKET sock)
 
 	*splitpoint[1] = '\0';
 	dynamic_string URL(splitpoint[0]+1);
-	webroot.GetFromPath(URL, URL, sock);
+
+	// This is just a little bit hacky...
+	if ( strstr( URL, "/../" ) )
+	{
+		status400.sendto(sock);
+		return;
+	}
+
+	const HTTPResponse* pResponse = webroot->GetFromPath(URL, URL, sock);
+	pResponse->sendto(sock);
+
+	if (pResponse->iStatus == 200)
+	{
+		delete pResponse;
+	}
 
 //	if (n <= 0) break;// error("ERROR writing to socket");
 }

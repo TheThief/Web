@@ -38,8 +38,8 @@ void Settings::save(string filePath){
 }
 
 std::string Settings::strToLower(std::string str){
-	const int length = str.length();
-		for(int i=0; i!=length; ++i){
+	const size_t length = str.length();
+		for(size_t i=0; i!=length; ++i){
 			str[i] = std::tolower(str[i]);
 		}
 	return str;

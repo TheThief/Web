@@ -2,4 +2,4 @@
 
 #include "../include/virtual_file.h"
 
-extern VirtualFolder webroot;
+extern const VirtualFolder* webroot;

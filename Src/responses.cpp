@@ -2,6 +2,15 @@
 
 #include "../include/HTTPResponse.h"
 
+char status301content[] =
+	"<html>\r\n"
+	"<body>\r\n"
+	"<h1>301 Permenantly Moved</h1>\r\n"
+	"<p>You probably missed a / off of a folder url. See the \"Location\" header for details.</p>\r\n"
+	"</body>\r\n"
+	"</html>\r\n";
+const HTTPResponseHTML status301(301, "Permenantly Moved", sizeof(status301content)-1, status301content);
+
 char status400content[] =
 	"<html>\r\n"
 	"<body>\r\n"
@@ -10,6 +19,15 @@ char status400content[] =
 	"</body>\r\n"
 	"</html>\r\n";
 const HTTPResponseHTML status400(400, "Bad Request", sizeof(status400content)-1, status400content);
+
+char status403content[] =
+	"<html>\r\n"
+	"<body>\r\n"
+	"<h1>403 Forbidden</h1>\r\n"
+	"<p>You're not allowed to access this...</p>\r\n"
+	"</body>\r\n"
+	"</html>\r\n";
+const HTTPResponseHTML status403(403, "Forbidden", sizeof(status403content)-1, status403content);
 
 char status404content[] =
 	"<html>\r\n"

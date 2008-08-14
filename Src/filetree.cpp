@@ -15,4 +15,6 @@ VirtualFile root_faviconico("favicon.ico","Test Files\\favicon.ico","image","vnd
 
 VirtualObject* root_subfiles[3] = {&root_indexhtml, &root_faviconico, &subfolder};
 
-extern VirtualFolder webroot("", 3, root_subfiles);
+//extern VirtualFolder webroot("", 3, root_subfiles);
+PhysicalFolder physical_webroot("", "Test Files", 0, NULL);
+extern const VirtualFolder* webroot = &physical_webroot;

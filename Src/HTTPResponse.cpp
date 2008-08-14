@@ -7,12 +7,19 @@
 
 #define SEND_BUFFER_LENGTH (1*1024)
 
+HTTPResponse::HTTPResponse(__int16 _iStatus, dynamic_string _cpStatus)
+	: iStatus(_iStatus), cpStatus(_cpStatus)
+{
+	Headers.AddItem(HTTPHeader("Cache-Control", "public, max-age=3600"));
+	Headers.AddItem(HTTPHeader("Connection", "close"));
+}
+
 void HTTPResponse::sendto(SOCKET s) const
 {
 	int n = 0;
 	auto_ptr_array<char> send_buffer = new char[SEND_BUFFER_LENGTH];
 	n += sprintf_s(send_buffer, SEND_BUFFER_LENGTH,
-		"HTTP/1.1 %d %s\r\n", iStatus, cpStatus);
+		"HTTP/1.1 %d %s\r\n", iStatus, (const char*)cpStatus);
 #if !_DEBUG
 	puts(send_buffer);
 #endif
@@ -32,14 +39,12 @@ void HTTPResponse::sendto(SOCKET s) const
 #endif
 }
 
-HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, char* _cpStatus, long _iContentLength, const char* _Content)
+HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content)
 	: HTTPResponse(_iStatus, _cpStatus), iContentLength(_iContentLength), Content(_Content)
 {
 	Headers.AddItem(HTTPHeader("Content-Type", "text/html"));
 	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
 	Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
-	Headers.AddItem(HTTPHeader("Cache-Control", "public, max-age=3600"));
-	Headers.AddItem(HTTPHeader("Connection", "close"));
 };
 
 void HTTPResponseHTML::sendto(SOCKET s) const
@@ -55,17 +60,28 @@ void HTTPResponseHTML::sendto(SOCKET s) const
 #include <fcntl.h>
 #include <share.h>
 #include <io.h>
+#include <errno.h>
 
-HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, const char* _cpStatus, const char* FileName) : HTTPResponse(_iStatus,_cpStatus)
+HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, dynamic_string FileName, dynamic_string _ContentType, dynamic_string _ContentSubType)
+	: HTTPResponse(_iStatus,_cpStatus), ContentType(_ContentType), ContentSubType(_ContentSubType)
 {
 	_sopen_s(&FileHandle,FileName,_O_BINARY|_O_RDONLY|_O_SEQUENTIAL,_SH_DENYWR,0);
 
-	//Headers.AddItem(HTTPHeader("Content-Type", "text/html"));
+	Headers.AddItem(HTTPHeader("Content-Type", dynamic_string::printf("%s/%s", (const char*)ContentType, (const char*)ContentSubType)));
 
-	//long iContentLength = _filelength(FileHandle);
-	//auto_ptr_array<char> sContentLength = new char[32];
-	//sprintf_s(sContentLength, 32, "%d", iContentLength);
-	//Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
+	long iContentLength = _filelength(FileHandle);
+	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
+	Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
+}
+
+HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, int _FileHandle, dynamic_string _ContentType, dynamic_string _ContentSubType)
+	: HTTPResponse(_iStatus,_cpStatus), FileHandle(_FileHandle), ContentType(_ContentType), ContentSubType(_ContentSubType)
+{
+	Headers.AddItem(HTTPHeader("Content-Type", dynamic_string::printf("%s/%s", (const char*)ContentType, (const char*)ContentSubType)));
+
+	long iContentLength = _filelength(FileHandle);
+	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
+	Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
 }
 
 HTTPResponseFile::~HTTPResponseFile()
@@ -75,23 +91,7 @@ HTTPResponseFile::~HTTPResponseFile()
 
 void HTTPResponseFile::sendto(SOCKET s) const
 {
-	long iContentLength = _filelength(FileHandle);
-	dynamic_string sResponse;
-	sResponse += dynamic_string::printf("HTTP/1.1 %d %s\r\n", iStatus, cpStatus);
-#if !_DEBUG
-	puts(sResponse);
-#endif
-
-	sResponse += dynamic_string::printf("Content-Type: %s/%s\r\n", ContentType, ContentSubType);
-	sResponse += dynamic_string::printf("Content-Length: %d\r\n", iContentLength);
-	sResponse += "Cache-Control: public, max-age=3600\r\n";
-	sResponse += "Connection: close\r\n";
-	sResponse += dynamic_string("\r\n");
-
-	send(s, sResponse, sResponse.Len(), 0);
-#if _DEBUG
-	puts(sResponse);
-#endif
+	HTTPResponse::sendto(s);
 
 #if _DEBUG
 	bool bText = ( memcmp(ContentType,"text",5) == 0 );

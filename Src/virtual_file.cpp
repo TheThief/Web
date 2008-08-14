@@ -6,15 +6,14 @@
 #include "../include/responses.h"
 #include "../include/HTTPResponse.h"
 
-const char* defaultfile = "index.html";
+const char* pDefaultFile = "index.html";
 
-void VirtualFolder::GetFromPath(const char* pFullPath, const char* pPartialPath, SOCKET s)
+const HTTPResponse* VirtualFolder::GetFromPath(const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
 	if (pPartialPath[0]!='/')
 	{
 		// Needs changing to a "301 Permenantly Moved"
-		status404.sendto(s);
-		return;
+		return &status404;
 	}
 
 	pPartialPath++;
@@ -22,7 +21,7 @@ void VirtualFolder::GetFromPath(const char* pFullPath, const char* pPartialPath,
 
 	if (iNameLen==0)
 	{
-		pPartialPath = defaultfile;
+		pPartialPath = pDefaultFile;
 		iNameLen = strcspn(pPartialPath,"/?");
 	}
 
@@ -37,23 +36,96 @@ void VirtualFolder::GetFromPath(const char* pFullPath, const char* pPartialPath,
 		}
 	}
 
-	status404.sendto(s);
-	return;
+	return &status404;
 }
 
-void VirtualFile::GetFromPath(const char* pFullPath, const char* pPartialPath, SOCKET s)
+#include <fcntl.h>
+#include <share.h>
+#include <io.h>
+#include <errno.h>
+
+const HTTPResponse* PhysicalFolder::GetFromPath(const char* pFullPath, const char* pPartialPath, SOCKET s) const
+{
+	if (pPartialPath[0]!='/')
+	{
+		// Needs changing to a "301 Permenantly Moved"
+		return &status404;
+	}
+
+	const HTTPResponse* pResponse = VirtualFolder::GetFromPath(pFullPath, pPartialPath, s);
+	if (pResponse == &status404)
+	{
+		pPartialPath++;
+		size_t iNameLen = strcspn(pPartialPath,"/?");
+
+		if (iNameLen==0)
+		{
+			pPartialPath = pDefaultFile;
+			iNameLen = strcspn(pPartialPath,"/?");
+		}
+
+		int FileHandle;
+		dynamic_string FileName = FilePath;
+		FileName += "/";
+		FileName += pPartialPath;
+
+		// _stat?
+		int attrib = GetFileAttributesA(FileName);
+		if (attrib != INVALID_FILE_ATTRIBUTES && attrib & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			// Should have 301 if not already / terminated
+			FileName += "/";
+			FileName += pDefaultFile;
+		}
+
+		errno_t err = _sopen_s(&FileHandle, FileName, _O_BINARY|_O_RDONLY|_O_SEQUENTIAL, _SH_DENYWR, 0);
+		if (err == EACCES)
+		{
+			return &status403;
+		}
+		if (err == 0)
+		{
+			dynamic_string content_type = "application";
+			dynamic_string content_subtype = "octet-stream";
+			dynamic_string fileext;
+			fileext.SetLen(32);
+			_splitpath_s(FileName, NULL, 0, NULL, 0, NULL, 0, fileext, 32);
+			fileext.Normalize();
+			if (fileext == ".html" || fileext == ".htm")
+			{
+				content_type = "text";
+				content_subtype = "html";
+			}
+			else if (fileext == ".ico")
+			{
+				content_type = "image";
+				content_subtype = "vnd.microsoft.icon";
+			}
+			return new HTTPResponseFile(200, "OK", FileHandle, content_type, content_subtype);
+		}
+		else if (err == ENOENT)
+		{
+			return &status404;
+		}
+		else
+		{
+			return &status500;
+		}
+	}
+	else
+	{
+		return pResponse;
+	}
+}
+
+const HTTPResponse* VirtualFile::GetFromPath(const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
 	size_t iNameLen = strcspn(pPartialPath,"/?");
 
 	if (iNameLen==0)
 	{
-		HTTPResponseFile response(200, "OK", FilePath);
-		response.ContentType = ContentType;
-		response.ContentSubType = ContentSubType;
-		response.sendto(s);
-		return;
+		return new HTTPResponseFile(200, "OK", FilePath, ContentType, ContentSubType);
 	}
 
-	status404.sendto(s);
-	return;
+	return &status404;
 }

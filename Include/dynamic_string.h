@@ -31,6 +31,28 @@ public:
 		return *this;
 	}
 
+	bool operator ==(const dynamic_string& rhs)
+	{
+		return *this == (const char *)rhs;
+	}
+
+	bool operator ==(const char* rhs)
+	{
+		const char* slhs = *this;
+		const char* srhs = rhs;
+		// both empty
+		if (!slhs && !srhs)
+		{
+			return true;
+		}
+		// one set and the other not
+		if (!slhs || !srhs)
+		{
+			return true;
+		}
+		return (strcmp(slhs, srhs) == 0);
+	}
+
 	// Including null terminator
 	size_t Size() const
 	{
@@ -62,6 +84,26 @@ public:
 			{
 				return 0;
 			}
+		}
+	}
+
+	void SetLen(size_t iNewLen)
+	{
+		size_t iNewSize = iNewLen + 1; // + 1 for null terminator
+		clonebuffer(iNewSize + 32);
+		SetSize(iNewSize);
+		if (ptr)
+		{
+			((char*)ptr)[iNewLen] = '\0';
+		}
+	}
+
+	void Normalize()
+	{
+		if (!conststring && ptr)
+		{
+			iNum = strlen((char*)ptr) + 1;
+			assert(iNum <= iMax);
 		}
 	}
 
