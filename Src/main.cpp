@@ -130,6 +130,7 @@ int main(int argc, char *argv[])
 			newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 			if (newsockfd == INVALID_SOCKET)
 				error("ERROR on accept");
+			printf("IPv4 connection from %s\n", inet_ntoa(cli_addr.sin_addr));
 			QueueUserWorkItem(ThreadProc, (LPVOID)newsockfd, 0);
 		}
 		if (FD_ISSET(sockfd6, &selectedset))
@@ -141,6 +142,11 @@ int main(int argc, char *argv[])
 			newsockfd6 = accept(sockfd6, (struct sockaddr *) &cli_addr6, &clilen6);
 			if (newsockfd6 == INVALID_SOCKET)
 				error("ERROR on accept");
+			printf("IPv6 connection from [%x:%x:%x:%x:%x:%x:%x:%x]\n",
+				ntohs(cli_addr6.sin6_addr.u.Word[0]), ntohs(cli_addr6.sin6_addr.u.Word[1]),
+				ntohs(cli_addr6.sin6_addr.u.Word[2]), ntohs(cli_addr6.sin6_addr.u.Word[3]),
+				ntohs(cli_addr6.sin6_addr.u.Word[4]), ntohs(cli_addr6.sin6_addr.u.Word[5]),
+				ntohs(cli_addr6.sin6_addr.u.Word[6]), ntohs(cli_addr6.sin6_addr.u.Word[7]));
 			QueueUserWorkItem(ThreadProc, (LPVOID)newsockfd6, 0);
 		}
 	}

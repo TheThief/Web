@@ -1,11 +1,12 @@
-#include "../include/settings.h"
-#include "../include/virtual_file.h"
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <cctype> 
 #include <stdlib.h>
 #include <stdio.h>
+
+#include "../include/settings.h"
+#include "../include/virtual_file.h"
 
 using namespace std;
 
@@ -30,8 +31,7 @@ void Settings::load(string filePath){
 				if (varName == "port") port = atoi(varValue.c_str());
 				if (varName == "mimetypesfile") mimeTypesFile = varValue;
 				if (varName == "webroot"){
-					physical_webroot->FilePath = varValue.c_str();
-					physical_webroot->FilePath.clonebuffer();
+					physical_webroot->FilePath = varValue;
 				}
 				if (varName == "version") fileVersion = atoi(varValue.c_str());
 			}

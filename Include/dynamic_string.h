@@ -15,6 +15,14 @@ public:
 	dynamic_string() : dynamic_array(), conststring(NULL) { }
 	dynamic_string(const dynamic_string& rhs) : dynamic_array(rhs), conststring(rhs.conststring) { }
 	dynamic_string(const char* _conststring) : dynamic_array(), conststring(_conststring) { }
+#ifdef _STRING_
+	dynamic_string(const std::string& rhs) : dynamic_array(), conststring(NULL)
+	{
+		clonebuffer(rhs.size() + 32);
+		SetSize(rhs.size()+1);
+		rhs._Copy_s(ptr, Size(), rhs.size()+1);
+	}
+#endif
 
 	dynamic_string& operator +=(const dynamic_string& rhs)
 	{

@@ -30,13 +30,13 @@ void HTTPResponse::sendto(SOCKET s) const
 			"%s: %s\r\n", (const char*)Headers[i].Header, (const char*)Headers[i].Value);
 	}
 
-	n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n, "\r\n");
-
-	send(s, send_buffer, n, 0);
-
 #if _DEBUG
 	puts(send_buffer);
 #endif
+
+	n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n, "\r\n");
+
+	send(s, send_buffer, n, 0);
 }
 
 HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content)
@@ -98,7 +98,6 @@ void HTTPResponseFile::sendto(SOCKET s) const
 	if (!bText)
 	{
 		puts("--Non-text-data--");
-		puts("");
 	}
 #endif
 	int n = 0;
@@ -109,11 +108,12 @@ void HTTPResponseFile::sendto(SOCKET s) const
 #if _DEBUG
 		if (bText)
 		{
-			n = _write(stdout->_file, send_buffer, n);
+			_write(stdout->_file, send_buffer, n);
 		}
 #endif
 	}
 #if _DEBUG
-	n = puts("");
+	puts("");
+	puts("");
 #endif
 }

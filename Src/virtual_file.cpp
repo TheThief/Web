@@ -93,7 +93,7 @@ const HTTPResponse* PhysicalFolder::GetFromPath(const char* pFullPath, const cha
 			fileext.SetWritableBufferLen(32);
 			_splitpath_s(FileName, NULL, 0, NULL, 0, NULL, 0, fileext.GetWritableBuffer(), fileext.MaxSize());
 			fileext.Normalize();
-			return new HTTPResponseFile(200, "OK", FileHandle, _mimetypes.getType((const char*)fileext).c_str(), _mimetypes.getSubType((const char*)fileext).c_str());
+			return new HTTPResponseFile(200, "OK", FileHandle, _mimetypes.getType((const char*)fileext), _mimetypes.getSubType((const char*)fileext));
 		}
 		else if (err == ENOENT)
 		{
