@@ -19,10 +19,14 @@ void Mimetypes::load(std::string filePath){
 				ext = line.substr(0,line.find_first_of(" "));
 				type = line.substr(line.find_first_of(" ")+1);
 				ext = Mimetypes::strToLower(ext);
-				typeMap.insert(make_pair(ext,type));
+				if (typeMap.find(ext) == typeMap.end())
+					typeMap.insert(make_pair(ext,type));
+				else
+					printf("Duplicate setting for \"%s\"\n", ext.c_str());
 			}
 		}
 		file.close();
+		printf("%i mime types loaded\n", typeMap.size());
 	}
 }
 

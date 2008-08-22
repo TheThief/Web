@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN" "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+  <card id="main" title="WML Test">
+    <p>200 OK</p>
+    <p mode="wrap">It's alive!!!</p>
+    <do type="accept" label="Card Test">
+        <go href="#Card2"/>
+    </do>
+  </card>
+  <card id="main" title="WML Test">
+    <p>200 OK</p>
+    <p mode="wrap">Card 2!</p>
+    <do type="accept" label="Card Test">
+        <go href="#Card2"/>
+    </do>
+  </card>
+</wml>

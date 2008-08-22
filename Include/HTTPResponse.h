@@ -24,6 +24,7 @@ protected:
 
 public:
 	virtual void sendto(SOCKET s) const;
+	virtual ~HTTPResponse() { };
 };
 
 class HTTPResponseHTML : public HTTPResponse
@@ -46,6 +47,6 @@ public:
 
 	HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, int _FileHandle, dynamic_string _ContentType, dynamic_string _ContentSubType);
 	HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, dynamic_string FileName, dynamic_string _ContentType, dynamic_string _ContentSubType);
-	~HTTPResponseFile();
+	virtual ~HTTPResponseFile();
 	virtual void sendto(SOCKET s) const;
 };
