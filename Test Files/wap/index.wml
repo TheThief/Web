@@ -8,11 +8,11 @@
         <go href="#Card2"/>
     </do>
   </card>
-  <card id="main" title="WML Test">
+  <card id="Card2" title="WML Test 2">
     <p>200 OK</p>
     <p mode="wrap">Card 2!</p>
     <do type="accept" label="Card Test">
-        <go href="#Card2"/>
+        <go href="#main"/>
     </do>
   </card>
 </wml>
