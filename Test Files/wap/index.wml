@@ -4,15 +4,15 @@
   <card id="main" title="WML Test">
     <p>200 OK</p>
     <p mode="wrap">It's alive!!!</p>
-    <do type="accept" label="Card Test">
+    <p><anchor>WML Card 2
         <go href="#Card2"/>
-    </do>
+    </anchor></p>
   </card>
   <card id="Card2" title="WML Test 2">
     <p>200 OK</p>
     <p mode="wrap">Card 2!</p>
-    <do type="accept" label="Card Test">
-        <go href="#main"/>
-    </do>
+    <p><anchor>Back
+        <prev/>
+    </anchor></p>
   </card>
 </wml>
