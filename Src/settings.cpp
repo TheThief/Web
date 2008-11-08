@@ -11,10 +11,11 @@
 using namespace std;
 
 Settings::Settings(){
-	version = 2;
+	version = 3;
 	port = 10000;
 	physical_webroot = new PhysicalFolder("","webroot",0,NULL);
 	mimeTypesFile = "mimetypes.conf";
+	defaultCharset = "ISO-8859-1";
 }
 
 void Settings::load(string filePath){
@@ -34,11 +35,15 @@ void Settings::load(string filePath){
 					physical_webroot->FilePath = varValue;
 				}
 				if (varName == "version") fileVersion = atoi(varValue.c_str());
+				if (varName == "defaultcharset") defaultCharset = varValue;
 			}
 		}
 		file.close();
 	}
-	if (fileVersion < version) save(filePath);
+	if (fileVersion < version){
+		printf("Automatically updating settings file to version %i\n", version);
+		save(filePath);
+	}
 }
 
 void Settings::save(string filePath){
@@ -52,6 +57,8 @@ void Settings::save(string filePath){
 	fprintf(file, "webroot %s\n",(const char*)physical_webroot->FilePath);
 	fprintf(file, "#File to load Mime types from\n");
 	fprintf(file, "mimetypesfile %s\n",mimeTypesFile.c_str());
+	fprintf(file, "#Default character set\n");
+	fprintf(file, "defaultcharset %s\n",defaultCharset.c_str());
 	fclose(file);
 }
 

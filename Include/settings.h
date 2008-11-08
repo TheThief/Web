@@ -11,6 +11,7 @@ public:
 	VirtualFolder* getVirtualFolder();
 	int port;
 	std::string mimeTypesFile;
+	std::string defaultCharset;
 private:
 	PhysicalFolder *physical_webroot;
 	std::string strToLower(std::string str);

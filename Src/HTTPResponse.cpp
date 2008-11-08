@@ -4,6 +4,9 @@
 
 #include "../include/HTTPResponse.h"
 #include "../include/auto_ptr.h"
+#include "../include/Settings.h"
+
+extern Settings _settings;
 
 #define SEND_BUFFER_LENGTH (1*1024)
 
@@ -42,7 +45,8 @@ void HTTPResponse::sendto(SOCKET s) const
 HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content)
 	: HTTPResponse(_iStatus, _cpStatus), iContentLength(_iContentLength), Content(_Content)
 {
-	Headers.AddItem(HTTPHeader("Content-Type", "text/html"));
+	dynamic_string sContentTypeHeader = dynamic_string::printf("text/html; charset=%s", _settings.defaultCharset.c_str());
+	Headers.AddItem(HTTPHeader("Content-Type", sContentTypeHeader));
 	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
 	Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
 };
@@ -67,7 +71,12 @@ HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, d
 {
 	_sopen_s(&FileHandle,FileName,_O_BINARY|_O_RDONLY|_O_SEQUENTIAL,_SH_DENYWR,0);
 
-	Headers.AddItem(HTTPHeader("Content-Type", dynamic_string::printf("%s/%s", (const char*)ContentType, (const char*)ContentSubType)));
+	dynamic_string sContentTypeHeader = dynamic_string::printf("%s/%s", (const char*)ContentType, (const char*)ContentSubType);
+	if (ContentType == "Text")
+	{
+		sContentTypeHeader += dynamic_string::printf("; charset=%s", _settings.defaultCharset.c_str());
+	}
+	Headers.AddItem(HTTPHeader("Content-Type", sContentTypeHeader));
 
 	long iContentLength = _filelength(FileHandle);
 	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
@@ -77,7 +86,12 @@ HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, d
 HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, int _FileHandle, dynamic_string _ContentType, dynamic_string _ContentSubType)
 	: HTTPResponse(_iStatus,_cpStatus), FileHandle(_FileHandle), ContentType(_ContentType), ContentSubType(_ContentSubType)
 {
-	Headers.AddItem(HTTPHeader("Content-Type", dynamic_string::printf("%s/%s", (const char*)ContentType, (const char*)ContentSubType)));
+	dynamic_string sContentTypeHeader = dynamic_string::printf("%s/%s", (const char*)ContentType, (const char*)ContentSubType);
+	if (ContentType == "Text")
+	{
+		sContentTypeHeader += dynamic_string::printf("; charset=%s", _settings.defaultCharset.c_str());
+	}
+	Headers.AddItem(HTTPHeader("Content-Type", sContentTypeHeader));
 
 	long iContentLength = _filelength(FileHandle);
 	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
