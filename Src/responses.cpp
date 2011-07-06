@@ -15,10 +15,28 @@ char status400content[] =
 	"<html>\r\n"
 	"<body>\r\n"
 	"<h1>400 Bad Request</h1>\r\n"
-	"<p>This is a <i>HTTP</i> server, idiot.</p>\r\n"
+	"<p>This is a <i>HTTP</i> server. Please send a valid request.<!--Idiot--></p>\r\n"
 	"</body>\r\n"
 	"</html>\r\n";
 const HTTPResponseHTML status400(400, "Bad Request", sizeof(status400content)-1, status400content);
+
+char status400nohost_content[] =
+	"<html>\r\n"
+	"<body>\r\n"
+	"<h1>400 Bad Request (no host header)</h1>\r\n"
+	"<p>HTTP/1.1 requires you to send a \"Host:\" header with your request. Please do.</p>\r\n"
+	"</body>\r\n"
+	"</html>\r\n";
+const HTTPResponseHTML status400nohost(400, "Bad Request (no host header)", sizeof(status400nohost_content)-1, status400nohost_content);
+
+char status400badhost_content[] =
+	"<html>\r\n"
+	"<body>\r\n"
+	"<h1>400 Bad Request (bad host header)</h1>\r\n"
+	"<p>This server does not serve on the domain you specified in the host header.</p>\r\n"
+	"</body>\r\n"
+	"</html>\r\n";
+const HTTPResponseHTML status400badhost(400, "Bad Request (bad host header)", sizeof(status400badhost_content)-1, status400badhost_content);
 
 char status403content[] =
 	"<html>\r\n"
@@ -51,7 +69,7 @@ const char status501content[] =
 	"<html>\r\n"
 	"<body>\r\n"
 	"<h1>501 Not Implemented</h1>\r\n"
-	"<p>This web server only supports GET requests.</p>\r\n"
+	"<p>This web server only supports GET and HEAD requests.</p>\r\n"
 	"</body>\r\n"
 	"</html>\r\n";
 const HTTPResponseHTML status501(501, "Not Implemented", sizeof(status501content)-1, status501content);

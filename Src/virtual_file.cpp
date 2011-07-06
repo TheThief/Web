@@ -21,12 +21,12 @@ const HTTPResponse* VirtualFolder::GetFromPath(const char* pFullPath, const char
 	}
 
 	pPartialPath++;
-	size_t iNameLen = strcspn(pPartialPath,"/?");
+	size_t iNameLen = strcspn(pPartialPath,"?");
 
 	if (iNameLen==0)
 	{
 		pPartialPath = pDefaultFile;
-		iNameLen = strcspn(pPartialPath,"/?");
+		iNameLen = strcspn(pPartialPath,"?");
 	}
 
 	for(int i=0; i<iNumSubObjects; i++)
@@ -60,12 +60,12 @@ const HTTPResponse* PhysicalFolder::GetFromPath(const char* pFullPath, const cha
 	if (pResponse == &status404)
 	{
 		pPartialPath++;
-		size_t iNameLen = strcspn(pPartialPath,"/?");
+		size_t iNameLen = strcspn(pPartialPath,"?");
 
 		if (iNameLen==0)
 		{
 			pPartialPath = pDefaultFile;
-			iNameLen = strcspn(pPartialPath,"/?");
+			iNameLen = strcspn(pPartialPath,"?");
 		}
 
 		int FileHandle;

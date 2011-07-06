@@ -305,20 +305,20 @@ public:
 	{
 		if (Size > iNum)
 		{
-			clonebuffer();
+			clonebuffer(Size - iNum + 32);
+			if (Size > iMax)
+			{
+				SetMaxSize(Size + 32);
+			}
 		}
 
 		if (iNum > Size)
 		{
+			clonebuffer();
 			for (size_t i=Size; i<iNum; i++)
 			{
 				(*this)[i].~T();
 			}
-		}
-
-		if (iMax < Size)
-		{
-			SetMaxSize(Size + 32);
 		}
 
 		if (iNum < Size)

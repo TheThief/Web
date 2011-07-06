@@ -15,7 +15,7 @@ void Mimetypes::load(std::string filePath){
 	if (file.is_open()){
 		while(!file.eof()){
 			getline(file,line);
-			if (line[0] != '#' && !line.empty() && line.find(" ")){
+			if (!line.empty() && line[0] != '#' && line.find(" ")){
 				ext = line.substr(0,line.find_first_of(" "));
 				type = line.substr(line.find_first_of(" ")+1);
 				ext = Mimetypes::strToLower(ext);

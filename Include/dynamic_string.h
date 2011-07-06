@@ -15,10 +15,15 @@ public:
 	dynamic_string() : dynamic_array(), conststring(NULL) { }
 	dynamic_string(const dynamic_string& rhs) : dynamic_array(rhs), conststring(rhs.conststring) { }
 	dynamic_string(const char* _conststring) : dynamic_array(), conststring(_conststring) { }
+	dynamic_string(const char* _conststring, size_t _len) : dynamic_array(), conststring(NULL)
+	{
+		SetSize(_len + 1);
+		memcpy((char*)ptr, _conststring, (_len) * sizeof(char));
+		((char*)ptr)[_len] = '\0';
+	}
 #ifdef _STRING_
 	dynamic_string(const std::string& rhs) : dynamic_array(), conststring(NULL)
 	{
-		clonebuffer(rhs.size() + 32);
 		SetSize(rhs.size()+1);
 		rhs._Copy_s(ptr, Size(), rhs.size()+1);
 	}
@@ -168,6 +173,12 @@ public:
 		{
 			return "";
 		}
+	}
+
+	const char& operator [](int i) const
+	{
+		assert(i >= 0 && (size_t)i < Len() + 1); // allow accessing null terminator
+		return ((const char*)*this)[i];
 	}
 
 	char* GetWritableBuffer()

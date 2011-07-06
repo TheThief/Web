@@ -24,7 +24,10 @@ void HTTPResponse::sendto(SOCKET s) const
 	n += sprintf_s(send_buffer, SEND_BUFFER_LENGTH,
 		"HTTP/1.1 %d %s\r\n", iStatus, (const char*)cpStatus);
 #if !_DEBUG
-	puts(send_buffer);
+	if (_settings.bDebugLog)
+	{
+		puts(send_buffer);
+	}
 #endif
 
 	for (size_t i=0; i<Headers.Num(); i++)
@@ -34,7 +37,10 @@ void HTTPResponse::sendto(SOCKET s) const
 	}
 
 #if _DEBUG
-	puts(send_buffer);
+	if (_settings.bDebugLog)
+	{
+		puts(send_buffer);
+	}
 #endif
 
 	n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n, "\r\n");
@@ -57,7 +63,10 @@ void HTTPResponseHTML::sendto(SOCKET s) const
 	send(s, Content, iContentLength, 0);
 
 #if _DEBUG
-	puts(Content);
+	if (_settings.bDebugLog)
+	{
+		puts(Content);
+	}
 #endif
 }
 
@@ -108,10 +117,14 @@ void HTTPResponseFile::sendto(SOCKET s) const
 	HTTPResponse::sendto(s);
 
 #if _DEBUG
-	bool bText = ( memcmp(ContentType,"text",5) == 0 );
-	if (!bText)
+	bool bText;
+	if (_settings.bDebugLog)
 	{
-		puts("--Non-text-data--");
+		bText = ( memcmp(ContentType,"text",5) == 0 );
+		if (!bText)
+		{
+			puts("--Non-text-data--");
+		}
 	}
 #endif
 	int n = 0;
@@ -120,14 +133,20 @@ void HTTPResponseFile::sendto(SOCKET s) const
 	{
 		n = send(s, send_buffer, n, 0);
 #if _DEBUG
-		if (bText)
+		if (_settings.bDebugLog)
 		{
-			_write(stdout->_file, send_buffer, n);
+			if (bText)
+			{
+				_write(stdout->_file, send_buffer, n);
+			}
 		}
 #endif
 	}
 #if _DEBUG
-	puts("");
-	puts("");
+	if (_settings.bDebugLog)
+	{
+		puts("");
+		puts("");
+	}
 #endif
 }
