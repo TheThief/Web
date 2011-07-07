@@ -28,7 +28,7 @@ Settings _settings;
 Mimetypes _mimetypes;
 char *confFile = "web.conf";
 
-void error(char *msg)
+extern void error(char *msg)
 {
 	puts(msg);
 
@@ -169,16 +169,19 @@ int main(int argc, char *argv[])
 
 		GetWinsockExtensions(listensock);
 
-		DWORD dwBytes;
-		AcceptData* acceptdata = new AcceptData();
-		memset(acceptdata, 0, sizeof(AcceptData));
-		acceptdata->clisockfd = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-		if (pAcceptEx(listensock, acceptdata->clisockfd, &acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes, acceptdata))
+		for (int i = 0; i < _settings.maxConnections; i++)
 		{
-			AcceptCallback(0, dwBytes, acceptdata);
+			DWORD dwBytes;
+			AcceptData* acceptdata = new AcceptData();
+			memset(acceptdata, 0, sizeof(AcceptData));
+			acceptdata->clisockfd = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+			if (pAcceptEx(listensock, acceptdata->clisockfd, &acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes, acceptdata))
+			{
+				AcceptCallback(0, dwBytes, acceptdata);
+			}
+			else if (WSAGetLastError() != ERROR_IO_PENDING)
+				error("AcceptEx Failed");
 		}
-		else if (WSAGetLastError() != ERROR_IO_PENDING)
-			error("AcceptEx Failed");
 	}
 	if (listensock6 != INVALID_SOCKET)
 	{
@@ -189,16 +192,19 @@ int main(int argc, char *argv[])
 			GetWinsockExtensions(listensock6);
 		}
 
-		DWORD dwBytes;
-		AcceptData* acceptdata = new AcceptData();
-		memset(acceptdata, 0, sizeof(AcceptData));
-		acceptdata->clisockfd = WSASocket(AF_INET6, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-		if (pAcceptEx(listensock6, acceptdata->clisockfd, &acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes, acceptdata))
+		for (int i = 0; i < _settings.maxConnections; i++)
 		{
-			AcceptCallback(0, dwBytes, acceptdata);
+			DWORD dwBytes;
+			AcceptData* acceptdata = new AcceptData();
+			memset(acceptdata, 0, sizeof(AcceptData));
+			acceptdata->clisockfd = WSASocket(AF_INET6, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+			if (pAcceptEx(listensock6, acceptdata->clisockfd, &acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes, acceptdata))
+			{
+				AcceptCallback(0, dwBytes, acceptdata);
+			}
+			else if (WSAGetLastError() != ERROR_IO_PENDING)
+				error("AcceptEx Failed");
 		}
-		else if (WSAGetLastError() != ERROR_IO_PENDING)
-			error("AcceptEx Failed");
 	}
 
 	Sleep(INFINITE);
@@ -219,12 +225,12 @@ VOID CALLBACK AcceptCallback(__in  DWORD dwErrorCode, __in  DWORD dwNumberOfByte
 		if (pcli_addr->sa_family == AF_INET)
 		{
 			const struct sockaddr_in& cli_addr4 = (sockaddr_in&)*pcli_addr;
-			printf("IPv4 connection from %s\n", inet_ntoa(cli_addr4.sin_addr));
+			printf("%x: IPv4 connection from %s\n", acceptdata->clisockfd, inet_ntoa(cli_addr4.sin_addr));
 		}
 		else if (pcli_addr->sa_family == AF_INET6)
 		{
 			const struct sockaddr_in6& cli_addr6 = (sockaddr_in6&)*pcli_addr;
-			printf("IPv6 connection from [%x:%x:%x:%x:%x:%x:%x:%x]\n",
+			printf("%x: IPv6 connection from [%x:%x:%x:%x:%x:%x:%x:%x]\n", acceptdata->clisockfd,
 				ntohs(cli_addr6.sin6_addr.u.Word[0]), ntohs(cli_addr6.sin6_addr.u.Word[1]),
 				ntohs(cli_addr6.sin6_addr.u.Word[2]), ntohs(cli_addr6.sin6_addr.u.Word[3]),
 				ntohs(cli_addr6.sin6_addr.u.Word[4]), ntohs(cli_addr6.sin6_addr.u.Word[5]),
@@ -242,11 +248,15 @@ DWORD WINAPI ThreadProc(LPVOID lpParameter)
 	AcceptData* acceptdata = (AcceptData*)lpParameter;
 
 	dostuff(acceptdata->clisockfd);
+	if (_settings.bDebugLog)
+		printf("%x: Disconnecting...\n", acceptdata->clisockfd);
 	if (!pDisconnectEx(acceptdata->clisockfd, 0, TF_REUSE_SOCKET, 0))
 	{
 		if (WSAGetLastError() != WSAENOTCONN)
 			error("DisconnectEx Failed");
 	}
+	if (_settings.bDebugLog)
+		printf("%x: Disconnected\n", acceptdata->clisockfd);
 	sockaddr* pcli_addr;
 	sockaddr* psrv_addr;
 	int cli_addr_len, srv_addr_len;
@@ -297,7 +307,7 @@ void dostuff (SOCKET sock)
 
 	if (_settings.bDebugLog)
 	{
-		puts(buffer);
+		printf("%x:\n%s", sock, buffer);
 	}
 
 	if (n>=1023)
@@ -374,10 +384,12 @@ void dostuff (SOCKET sock)
 	}
 
 	dynamic_string host;
+	dynamic_string fullhost;
 	for (int i = 0; i < (int)headers.Num(); i++)
 	{
 		if (headers[i].Header == "Host")
 		{
+			fullhost = headers[i].Value;
 			host = dynamic_string(headers[i].Value, strcspn(headers[i].Value, ":"));
 			goto foundhost;
 		}
@@ -402,10 +414,11 @@ validhost:
 		status400.sendto(sock);
 		return;
 	}
-	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(URL, URL, sock);
+	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(fullhost, URL, URL, sock);
 	pResponse->sendto(sock);
 
-	if (pResponse->iStatus == 200)
+	// this is a hack...
+	if (pResponse->iStatus == 200 || pResponse->iStatus == 301)
 	{
 		delete pResponse;
 	}

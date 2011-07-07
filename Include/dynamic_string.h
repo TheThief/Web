@@ -29,6 +29,28 @@ public:
 	}
 #endif
 
+	dynamic_string operator +(const dynamic_string& rhs)
+	{
+		size_t iLen = Len();
+		size_t irLen = rhs.Len();
+		if (iLen > 0)
+		{
+			if (irLen > 0)
+			{
+				dynamic_string result = *this;
+				return result += rhs;
+			}
+			else
+			{
+				return *this;
+			}
+		}
+		else
+		{
+			return rhs;
+		}
+	}
+
 	dynamic_string& operator +=(const dynamic_string& rhs)
 	{
 		size_t irLen = rhs.Len();

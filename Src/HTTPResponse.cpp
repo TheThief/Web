@@ -26,7 +26,7 @@ void HTTPResponse::sendto(SOCKET s) const
 #if !_DEBUG
 	if (_settings.bDebugLog)
 	{
-		puts(send_buffer);
+		printf("%x: %s\n", s, send_buffer);
 	}
 #endif
 
@@ -39,7 +39,7 @@ void HTTPResponse::sendto(SOCKET s) const
 #if _DEBUG
 	if (_settings.bDebugLog)
 	{
-		puts(send_buffer);
+		printf("%x:\n%s\n", s, send_buffer);
 	}
 #endif
 

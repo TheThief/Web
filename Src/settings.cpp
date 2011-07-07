@@ -22,7 +22,7 @@ Settings::Settings(){
 	mimeTypesFile = "mimetypes.conf";
 	defaultCharset = "ISO-8859-1";
 	bDebugLog = false;
-	maxConnections = 400;
+	maxConnections = 8;
 }
 
 void Settings::load(string filePath){
