@@ -2,9 +2,11 @@
 
 #include <stdio.h>
 
-#include "../include/HTTPResponse.h"
-#include "../include/auto_ptr.h"
-#include "../include/Settings.h"
+#include "HTTPResponse.h"
+#include "auto_ptr.h"
+#include "Settings.h"
+
+#include "threadpool_winsock.h"
 
 extern Settings _settings;
 
@@ -45,7 +47,8 @@ void HTTPResponse::sendto(SOCKET s) const
 
 	n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n, "\r\n");
 
-	send(s, send_buffer, n, 0);
+	DWORD dwBytes = 0;
+	Fiber_Send(s, send_buffer, n, &dwBytes, 0);
 }
 
 HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content)
@@ -60,7 +63,8 @@ HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, l
 void HTTPResponseHTML::sendto(SOCKET s) const
 {
 	HTTPResponse::sendto(s);
-	send(s, Content, iContentLength, 0);
+	DWORD dwBytes = 0;
+	Fiber_Send(s, (void*)(const char*)Content, iContentLength, &dwBytes, 0);
 
 #if _DEBUG
 	if (_settings.bDebugLog)
@@ -131,7 +135,8 @@ void HTTPResponseFile::sendto(SOCKET s) const
 	auto_ptr_array<char> send_buffer = new char[SEND_BUFFER_LENGTH];
 	while((n =_read(FileHandle, send_buffer, SEND_BUFFER_LENGTH)) > 0)
 	{
-		n = send(s, send_buffer, n, 0);
+		DWORD dwBytes = 0;
+		Fiber_Send(s, send_buffer, n, &dwBytes, 0);
 #if _DEBUG
 		if (_settings.bDebugLog)
 		{

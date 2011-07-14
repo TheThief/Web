@@ -1,13 +1,13 @@
 #include <string.h>
 #include <string>
 
-#include "../include/virtual_file.h"
+#include "virtual_file.h"
 
-#include "../include/dynamic_string.h"
-#include "../include/auto_ptr.h"
-#include "../include/responses.h"
-#include "../include/HTTPResponse.h"
-#include "../include/mimetypes.h"
+#include "dynamic_string.h"
+#include "auto_ptr.h"
+#include "responses.h"
+#include "HTTPResponse.h"
+#include "mimetypes.h"
 
 const char* pDefaultFile = "index.html";
 extern Mimetypes _mimetypes;

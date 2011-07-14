@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/virtual_file.h"
+#include "virtual_file.h"
 #include "auto_ptr.h"
 #include <string>
 

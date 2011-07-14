@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../include/settings.h"
-#include "../include/virtual_file.h"
+#include "settings.h"
+#include "virtual_file.h"
 
 using namespace std;
 
@@ -40,9 +40,9 @@ void Settings::load(string filePath){
 				if (varName == "hostnames")
 				{
 					hostnames.SetSize(0);
-					for(int i = 0;;)
+					for(size_t i = 0;;)
 					{
-						int j = varValue.find(',', i);
+						size_t j = varValue.find(',', i);
 						if (j == std::string::npos)
 						{
 							hostnames.AddItem(dynamic_string(varValue.c_str() + i, varValue.length() - i));

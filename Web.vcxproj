@@ -72,6 +72,10 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\Bin\$(Platform)_$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -162,6 +166,8 @@
     <ClCompile Include="Src\mimetypes.cpp" />
     <ClCompile Include="Src\responses.cpp" />
     <ClCompile Include="Src\settings.cpp" />
+    <ClCompile Include="Src\threadpool.cpp" />
+    <ClCompile Include="Src\threadpool_winsock.cpp" />
     <ClCompile Include="Src\virtual_file.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -172,6 +178,8 @@
     <ClInclude Include="Include\mimetypes.h" />
     <ClInclude Include="include\responses.h" />
     <ClInclude Include="Include\settings.h" />
+    <ClInclude Include="Include\threadpool.h" />
+    <ClInclude Include="Include\threadpool_winsock.h" />
     <ClInclude Include="Include\virtual_file.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

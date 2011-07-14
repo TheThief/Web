@@ -1,8 +1,8 @@
 #include <string.h>
 
-#include "../include/filetree.h"
+#include "filetree.h"
 
-#include "../include/virtual_file.h"
+#include "virtual_file.h"
 
 VirtualFile subfolder_indexhtml("index.html","Test Files\\subfolderindex.html","text","html");
 

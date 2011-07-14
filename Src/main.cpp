@@ -18,11 +18,13 @@ _Check_return_ __inline char * __CRTDECL _strspnp
     return _Cpc1==NULL ? NULL : ((*(_Cpc1 += strspn(_Cpc1,_Cpc2))!='\0') ? (char*)_Cpc1 : NULL); 
 }
 
-#include "../include/settings.h"
-#include "../include/mimetypes.h"
-#include "../include/responses.h"
-#include "../include/auto_ptr.h"
-#include "../include/filetree.h"
+#include "settings.h"
+#include "mimetypes.h"
+#include "responses.h"
+#include "auto_ptr.h"
+#include "filetree.h"
+
+#include "threadpool_winsock.h"
 
 Settings _settings;
 Mimetypes _mimetypes;
@@ -58,25 +60,27 @@ extern void error(char *msg)
 	exit(1);
 }
 
+struct FiberData_Socket : FiberData
+{
+	SOCKET listensocket;
+	int addressfamily;
+
+	FiberData_Socket(LPFIBER_START_ROUTINE lpStartAddress) : FiberData(lpStartAddress) {}
+};
+
+void CALLBACK FiberProc(void* lpParameter);
+void dostuff(FiberData_Socket* pFiberData, SOCKET sock);
+
 GUID AcceptExGUID = WSAID_ACCEPTEX;
 LPFN_ACCEPTEX pAcceptEx = 0;
 GUID GetAcceptExSockaddrsGUID = WSAID_GETACCEPTEXSOCKADDRS;
 LPFN_GETACCEPTEXSOCKADDRS pGetAcceptExSockaddrs = 0;
 GUID DisconnectExGUID = WSAID_DISCONNECTEX;
 LPFN_DISCONNECTEX pDisconnectEx = 0;
-//LPFN_TRANSMITFILE pTransmitFile = 0;
+GUID TransmitFileGUID = WSAID_TRANSMITFILE;
+LPFN_TRANSMITFILE pTransmitFile = 0;
 
 #define ACCEPT_BUFFER_LENGTH (0*1024 + (sizeof(sockaddr_storage)+16)*2)
-
-struct AcceptData: OVERLAPPED
-{
-	SOCKET clisockfd;
-	byte acceptbuffer[ACCEPT_BUFFER_LENGTH];
-};
-
-VOID CALLBACK AcceptCallback(__in  DWORD dwErrorCode, __in DWORD dwNumberOfBytesTransfered, __in LPOVERLAPPED lpOverlapped);
-DWORD WINAPI ThreadProc(LPVOID lpParameter);
-void dostuff(SOCKET);
 
 void GetWinsockExtensions(SOCKET socket)
 {
@@ -96,12 +100,19 @@ void GetWinsockExtensions(SOCKET socket)
 		&DisconnectExGUID, sizeof(GUID),
 		(void**)&pDisconnectEx, sizeof(void *),
 		&dwBytes, 0, 0);
+
+	WSAIoctl(socket, SIO_GET_EXTENSION_FUNCTION_POINTER,
+		&TransmitFileGUID, sizeof(GUID),
+		(void**)&pTransmitFile, sizeof(void *),
+		&dwBytes, 0, 0);
 }
 
 SOCKET listensock, listensock6;
 
 int main(int argc, char *argv[])
 {
+	InitThreadPool();
+
 	if (argc > 1) confFile = argv[1];
 	errno_t err = 0;
 	if ( (err = _access_s(confFile, 0)) == 0 ){
@@ -117,8 +128,6 @@ int main(int argc, char *argv[])
 	if ( wsaData.wVersion != MAKEWORD( 2, 2 ) )
 		error("ERROR initializing Winsock: Incompatible version");
 
-	fd_set socketset;
-	FD_ZERO(&socketset);
 	struct sockaddr_in serv_addr;
 	struct sockaddr_in6 serv_addr6;
 
@@ -138,7 +147,6 @@ int main(int argc, char *argv[])
 			error("ERROR on binding");
 		if (listen(listensock,5) < 0)
 			error("ERROR on listening");
-		FD_SET(listensock, &socketset);
 	}
 
 	// IPv6
@@ -157,7 +165,6 @@ int main(int argc, char *argv[])
 			error("ERROR on binding");
 		if (listen(listensock6,5) < 0)
 			error("ERROR on listening");
-		FD_SET(listensock6, &socketset);
 	}
 
 	if (listensock == INVALID_SOCKET && listensock6 == INVALID_SOCKET)
@@ -165,27 +172,21 @@ int main(int argc, char *argv[])
 
 	if (listensock != INVALID_SOCKET)
 	{
-		BindIoCompletionCallback((HANDLE)listensock, AcceptCallback, 0);
+		BindHandle((HANDLE)listensock);
 
 		GetWinsockExtensions(listensock);
 
 		for (int i = 0; i < _settings.maxConnections; i++)
 		{
-			DWORD dwBytes;
-			AcceptData* acceptdata = new AcceptData();
-			memset(acceptdata, 0, sizeof(AcceptData));
-			acceptdata->clisockfd = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-			if (pAcceptEx(listensock, acceptdata->clisockfd, &acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes, acceptdata))
-			{
-				AcceptCallback(0, dwBytes, acceptdata);
-			}
-			else if (WSAGetLastError() != ERROR_IO_PENDING)
-				error("AcceptEx Failed");
+			FiberData_Socket* pFiberData = new FiberData_Socket(&FiberProc);
+			pFiberData->listensocket = listensock;
+			pFiberData->addressfamily = AF_INET;
+			QueueFiber(pFiberData);
 		}
 	}
 	if (listensock6 != INVALID_SOCKET)
 	{
-		BindIoCompletionCallback((HANDLE)listensock6, AcceptCallback, 0);
+		BindHandle((HANDLE)listensock6);
 
 		if (listensock == INVALID_SOCKET)
 		{
@@ -194,16 +195,10 @@ int main(int argc, char *argv[])
 
 		for (int i = 0; i < _settings.maxConnections; i++)
 		{
-			DWORD dwBytes;
-			AcceptData* acceptdata = new AcceptData();
-			memset(acceptdata, 0, sizeof(AcceptData));
-			acceptdata->clisockfd = WSASocket(AF_INET6, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-			if (pAcceptEx(listensock6, acceptdata->clisockfd, &acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes, acceptdata))
-			{
-				AcceptCallback(0, dwBytes, acceptdata);
-			}
-			else if (WSAGetLastError() != ERROR_IO_PENDING)
-				error("AcceptEx Failed");
+			FiberData_Socket* pFiberData = new FiberData_Socket(&FiberProc);
+			pFiberData->listensocket = listensock6;
+			pFiberData->addressfamily = AF_INET6;
+			QueueFiber(pFiberData);
 		}
 	}
 
@@ -212,69 +207,61 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-VOID CALLBACK AcceptCallback(__in  DWORD dwErrorCode, __in  DWORD dwNumberOfBytesTransfered, __in  LPOVERLAPPED lpOverlapped)
+void CALLBACK FiberProc(void* lpParameter)
 {
-	AcceptData* acceptdata = (AcceptData*)lpOverlapped;
+	FiberData_Socket* pFiberData = (FiberData_Socket*)lpParameter;
 
-	if (_settings.bDebugLog)
+	SOCKET socket = WSASocket(pFiberData->addressfamily, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	BindHandle((HANDLE)socket);
+
+	while (true)
 	{
-		sockaddr* pcli_addr;
-		sockaddr* psrv_addr;
-		int cli_addr_len, srv_addr_len;
-		pGetAcceptExSockaddrs(acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &psrv_addr, &srv_addr_len, &pcli_addr, &cli_addr_len);
-		if (pcli_addr->sa_family == AF_INET)
+		DWORD dwBytes;
+		byte acceptbuffer[ACCEPT_BUFFER_LENGTH];
+		if (!Fiber_AcceptEx(pFiberData->listensocket, socket, &acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes))
+			error("AcceptEx Failed");
+
+		if (_settings.bDebugLog)
 		{
-			const struct sockaddr_in& cli_addr4 = (sockaddr_in&)*pcli_addr;
-			printf("%x: IPv4 connection from %s\n", acceptdata->clisockfd, inet_ntoa(cli_addr4.sin_addr));
+			sockaddr* pcli_addr;
+			sockaddr* psrv_addr;
+			int cli_addr_len, srv_addr_len;
+			pGetAcceptExSockaddrs(&acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &psrv_addr, &srv_addr_len, &pcli_addr, &cli_addr_len);
+			if (pcli_addr->sa_family == AF_INET)
+			{
+				const struct sockaddr_in& cli_addr4 = (sockaddr_in&)*pcli_addr;
+				printf("%x: IPv4 connection from %s\n", socket, inet_ntoa(cli_addr4.sin_addr));
+			}
+			else if (pcli_addr->sa_family == AF_INET6)
+			{
+				const struct sockaddr_in6& cli_addr6 = (sockaddr_in6&)*pcli_addr;
+				printf("%x: IPv6 connection from [%x:%x:%x:%x:%x:%x:%x:%x]\n", socket,
+					ntohs(cli_addr6.sin6_addr.u.Word[0]), ntohs(cli_addr6.sin6_addr.u.Word[1]),
+					ntohs(cli_addr6.sin6_addr.u.Word[2]), ntohs(cli_addr6.sin6_addr.u.Word[3]),
+					ntohs(cli_addr6.sin6_addr.u.Word[4]), ntohs(cli_addr6.sin6_addr.u.Word[5]),
+					ntohs(cli_addr6.sin6_addr.u.Word[6]), ntohs(cli_addr6.sin6_addr.u.Word[7]));
+			}
+			else
+				error("Bad socket in accept");
 		}
-		else if (pcli_addr->sa_family == AF_INET6)
+
+		dostuff(pFiberData, socket);
+
+		if (_settings.bDebugLog)
+			printf("%x: Disconnecting...\n", socket);
+		if (!Fiber_DisconnectEx(socket, TF_REUSE_SOCKET))
 		{
-			const struct sockaddr_in6& cli_addr6 = (sockaddr_in6&)*pcli_addr;
-			printf("%x: IPv6 connection from [%x:%x:%x:%x:%x:%x:%x:%x]\n", acceptdata->clisockfd,
-				ntohs(cli_addr6.sin6_addr.u.Word[0]), ntohs(cli_addr6.sin6_addr.u.Word[1]),
-				ntohs(cli_addr6.sin6_addr.u.Word[2]), ntohs(cli_addr6.sin6_addr.u.Word[3]),
-				ntohs(cli_addr6.sin6_addr.u.Word[4]), ntohs(cli_addr6.sin6_addr.u.Word[5]),
-				ntohs(cli_addr6.sin6_addr.u.Word[6]), ntohs(cli_addr6.sin6_addr.u.Word[7]));
-		}
-		else
-			error("Bad socket in accept");
-	}
-
-	QueueUserWorkItem(ThreadProc, (LPVOID)acceptdata, 0);
-}
-
-DWORD WINAPI ThreadProc(LPVOID lpParameter)
-{
-	AcceptData* acceptdata = (AcceptData*)lpParameter;
-
-	dostuff(acceptdata->clisockfd);
-	if (_settings.bDebugLog)
-		printf("%x: Disconnecting...\n", acceptdata->clisockfd);
-	if (!pDisconnectEx(acceptdata->clisockfd, 0, TF_REUSE_SOCKET, 0))
-	{
-		if (WSAGetLastError() != WSAENOTCONN)
+			//int iError = WSAGetLastError();
+			//if (iError != WSAENOTCONN && iError != WSAECONNRESET)
 			error("DisconnectEx Failed");
+		}
+		if (_settings.bDebugLog)
+			printf("%x: Disconnected\n", socket);
 	}
+
 	if (_settings.bDebugLog)
-		printf("%x: Disconnected\n", acceptdata->clisockfd);
-	sockaddr* pcli_addr;
-	sockaddr* psrv_addr;
-	int cli_addr_len, srv_addr_len;
-	pGetAcceptExSockaddrs(acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &psrv_addr, &srv_addr_len, &pcli_addr, &cli_addr_len);
-	SOCKET sock;
-	if (pcli_addr->sa_family == AF_INET)
-		sock = listensock;
-	else if (pcli_addr->sa_family == AF_INET6)
-		sock = listensock6;
-	else
-		error("Bad socket in disconnect");
-	if (pAcceptEx(sock, acceptdata->clisockfd, acceptdata->acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, 0, acceptdata))
-	{
-		AcceptCallback(0, 0, acceptdata);
-	}
-	else if (WSAGetLastError() != ERROR_IO_PENDING)
-		error("AcceptEx Failed");
-	return 0;
+		printf("Fiber - Done\n");
+	Fiber_Finish();
 }
 
 #define HEADER_BUFFER_LENGTH (1*1024)
@@ -284,33 +271,35 @@ DWORD WINAPI ThreadProc(LPVOID lpParameter)
  for each connection.  It handles all communication
  once a connnection has been established.
  *****************************************/
-void dostuff (SOCKET sock)
+void dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 {
-	int n=0, i=0;
+	DWORD headerbytes = 0;
 	auto_ptr_array<char> buffer = new char[HEADER_BUFFER_LENGTH];
 	char* line_start = buffer;
 	char* line_end = buffer;
 	while(1)
 	{
-		line_end = buffer + n;
-		i = recv(sock, line_end, HEADER_BUFFER_LENGTH-1-n, 0);
-		if ( i<=0 )
-			return; // error?
-		n+=i;
-		buffer[n]='\0';
+		DWORD dwBytes = 0;
+		DWORD dwFlags = 0;
+		line_end = buffer + dwBytes;
+		BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - dwBytes - 1, &dwBytes, &dwFlags);
+		if ( !result )
+			error("Recv failed");
+		if (dwBytes <= 0)
+			return; // Connection closed
+		headerbytes += dwBytes;
+		buffer[headerbytes]='\0';
 		line_end = strpbrk(line_end,"\r\n");
 		if ( line_end )
 			break;
 	}
-	if (n <= 0)
-		return;
 
 	if (_settings.bDebugLog)
 	{
 		printf("%x:\n%s", sock, buffer);
 	}
 
-	if (n>=1023)
+	if (headerbytes >= 1023)
 	{
 		status500.sendto(sock);
 		return;
@@ -361,12 +350,17 @@ void dostuff (SOCKET sock)
 		line_end = strpbrk(line_end,"\r\n");
 		while ( !line_end )
 		{
-			line_end = buffer + n;
-			i = recv(sock, buffer+n, HEADER_BUFFER_LENGTH-1-n, 0);
-			if ( i<=0 )
-				return; // error?
-			n+=i;
-			buffer[n]='\0';
+			line_end = buffer + headerbytes;
+			DWORD dwBytes = 0;
+			DWORD dwFlags = 0;
+			line_end = buffer + dwBytes;
+			BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - dwBytes - 1, &dwBytes, &dwFlags);
+			if ( !result )
+				error("Recv failed");
+			if (dwBytes <= 0)
+				return; // Connection closed
+			headerbytes += dwBytes;
+			buffer[headerbytes]='\0';
 			line_end = strpbrk(line_end,"\r\n");
 			if ( line_end )
 				break;

@@ -1,4 +1,4 @@
-#include "../include/mimetypes.h"
+#include "mimetypes.h"
 #include <string>
 #include <iostream>
 #include <fstream>

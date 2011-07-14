@@ -1,6 +1,6 @@
-#include "../include/responses.h"
+#include "responses.h"
 
-#include "../include/HTTPResponse.h"
+#include "HTTPResponse.h"
 
 char status301content[] =
 	"<html>\r\n"
