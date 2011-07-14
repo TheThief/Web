@@ -285,7 +285,11 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		line_end = buffer + dwBytes;
 		BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - dwBytes - 1, &dwBytes, &dwFlags);
 		if ( !result )
+		{
+			if (WSAGetLastError() == WSAECONNABORTED)
+				return false;
 			error("Recv failed");
+		}
 		if (dwBytes <= 0)
 			return false; // Connection closed
 		headerbytes += dwBytes;
@@ -355,7 +359,11 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 			line_end = buffer + dwBytes;
 			BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - dwBytes - 1, &dwBytes, &dwFlags);
 			if ( !result )
+			{
+				if (WSAGetLastError() == WSAECONNABORTED)
+					return false;
 				error("Recv failed");
+			}
 			if (dwBytes <= 0)
 				return false; // Connection closed
 			headerbytes += dwBytes;
