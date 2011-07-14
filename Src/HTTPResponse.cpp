@@ -16,7 +16,6 @@ HTTPResponse::HTTPResponse(__int16 _iStatus, dynamic_string _cpStatus)
 	: iStatus(_iStatus), cpStatus(_cpStatus)
 {
 	Headers.AddItem(HTTPHeader("Cache-Control", "public, max-age=3600"));
-	Headers.AddItem(HTTPHeader("Connection", "close"));
 }
 
 void HTTPResponse::sendto(SOCKET s) const

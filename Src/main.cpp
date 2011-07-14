@@ -69,7 +69,7 @@ struct FiberData_Socket : FiberData
 };
 
 void CALLBACK FiberProc(void* lpParameter);
-void dostuff(FiberData_Socket* pFiberData, SOCKET sock);
+bool dostuff(FiberData_Socket* pFiberData, SOCKET sock);
 
 GUID AcceptExGUID = WSAID_ACCEPTEX;
 LPFN_ACCEPTEX pAcceptEx = 0;
@@ -245,7 +245,8 @@ void CALLBACK FiberProc(void* lpParameter)
 				error("Bad socket in accept");
 		}
 
-		dostuff(pFiberData, socket);
+		while(dostuff(pFiberData, socket))
+			;
 
 		if (_settings.bDebugLog)
 			printf("%x: Disconnecting...\n", socket);
@@ -271,7 +272,7 @@ void CALLBACK FiberProc(void* lpParameter)
  for each connection.  It handles all communication
  once a connnection has been established.
  *****************************************/
-void dostuff(FiberData_Socket* pFiberData, SOCKET sock)
+bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 {
 	DWORD headerbytes = 0;
 	auto_ptr_array<char> buffer = new char[HEADER_BUFFER_LENGTH];
@@ -286,7 +287,7 @@ void dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		if ( !result )
 			error("Recv failed");
 		if (dwBytes <= 0)
-			return; // Connection closed
+			return false; // Connection closed
 		headerbytes += dwBytes;
 		buffer[headerbytes]='\0';
 		line_end = strpbrk(line_end,"\r\n");
@@ -295,14 +296,12 @@ void dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 	}
 
 	if (_settings.bDebugLog)
-	{
 		printf("%x:\n%s", sock, buffer);
-	}
 
 	if (headerbytes >= 1023)
 	{
 		status500.sendto(sock);
-		return;
+		return false;
 	}
 
 	char* splitpoint[3] = {NULL,NULL,NULL};
@@ -314,7 +313,7 @@ void dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 	if ( !(splitpoint[0] && splitpoint[1] && splitpoint[2] && *splitpoint[0] == ' ' && *splitpoint[1] == ' ' && *splitpoint[2] != ' ') )
 	{
 		status400.sendto(sock);
-		return;
+		return false;
 	}
 	dynamic_string method(line_start, splitpoint[0] - line_start);
 	dynamic_string URL(splitpoint[0]+1, splitpoint[1] - (splitpoint[0]+1));
@@ -323,19 +322,19 @@ void dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 	if (method != "GET" && method != "HEAD")
 	{
 		status501.sendto(sock);
-		return;
+		return false;
 	}
 
 	if (HTTPVersion != "HTTP/1.1")
 	{
 		status505.sendto(sock);
-		return;
+		return false;
 	}
 
 	if (URL.Len() <= 0 || URL[0] != '/')
 	{
 		status400.sendto(sock);
-		return;
+		return false;
 	}
 
 	dynamic_array<HTTPHeader> headers;
@@ -358,7 +357,7 @@ void dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 			if ( !result )
 				error("Recv failed");
 			if (dwBytes <= 0)
-				return; // Connection closed
+				return false; // Connection closed
 			headerbytes += dwBytes;
 			buffer[headerbytes]='\0';
 			line_end = strpbrk(line_end,"\r\n");
@@ -389,7 +388,7 @@ void dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		}
 	}
 		status400nohost.sendto(sock);
-		return;
+		return false;
 foundhost:
 	for (int i = 0; i < (int)_settings.hostnames.Num(); i++)
 	{
@@ -399,14 +398,26 @@ foundhost:
 		}
 	}
 		status400badhost.sendto(sock);
-		return;
+		return false;
 validhost:
+	bool keepalive = true; // keep-alive by default
+	for (int i = 0; i < (int)headers.Num(); i++)
+	{
+		if (headers[i].Header == "Connection")
+		{
+			if (headers[i].Value == "close")
+			{
+				keepalive = false;
+				break;
+			}
+		}
+	}
 
 	// This is just a little bit hacky...
 	if ( strstr( URL, "/../" ) )
 	{
 		status400.sendto(sock);
-		return;
+		return false;
 	}
 	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(fullhost, URL, URL, sock);
 	pResponse->sendto(sock);
@@ -417,5 +428,5 @@ validhost:
 		delete pResponse;
 	}
 
-//	if (n <= 0) break;// error("ERROR writing to socket");
+	return keepalive;
 }
