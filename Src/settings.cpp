@@ -21,7 +21,7 @@ Settings::Settings(){
 	physical_webroot = new PhysicalFolder("","webroot",0,NULL);
 	mimeTypesFile = "mimetypes.conf";
 	defaultCharset = "ISO-8859-1";
-	bDebugLog = false;
+	bDebugLog = debuglog_off;
 	maxConnections = 8;
 }
 
@@ -37,7 +37,7 @@ void Settings::load(string filePath){
 				varValue = line.substr(line.find_first_of(" ")+1);
 				varName = Settings::strToLower(varName);
 				if (varName == "port") port = atoi(varValue.c_str());
-				if (varName == "hostnames")
+				else if (varName == "hostnames")
 				{
 					hostnames.SetSize(0);
 					for(size_t i = 0;;)
@@ -53,14 +53,20 @@ void Settings::load(string filePath){
 						i = j + 1;
 					}
 				}
-				if (varName == "mimetypesfile") mimeTypesFile = varValue;
-				if (varName == "webroot"){
+				else if (varName == "mimetypesfile") mimeTypesFile = varValue;
+				else if (varName == "webroot"){
 					physical_webroot->FilePath = varValue;
 				}
-				if (varName == "version") fileVersion = atoi(varValue.c_str());
-				if (varName == "defaultcharset") defaultCharset = varValue;
-				if (varName == "debuglog") bDebugLog = strToBool(varValue);
-				if (varName == "maxconn") maxConnections = atoi(varValue.c_str());
+				else if (varName == "version") fileVersion = atoi(varValue.c_str());
+				else if (varName == "defaultcharset") defaultCharset = varValue;
+				else if (varName == "debuglog")
+				{
+					varValue = Settings::strToLower(varValue);
+					if (varValue == "off") bDebugLog = debuglog_off;
+					else if (varValue == "on") bDebugLog = debuglog_on;
+					else if (varValue == "errors") bDebugLog = debuglog_errors;
+				}
+				else if (varName == "maxconn") maxConnections = atoi(varValue.c_str());
 			}
 		}
 		file.close();
@@ -107,7 +113,7 @@ void Settings::save(string filePath){
 	fprintf(file, "defaultcharset %s\n", defaultCharset.c_str());
 	fprintf(file, "\n");
 	fprintf(file, "#Enable Debug Logging\n");
-	fprintf(file, "debuglog %s\n", bDebugLog ? "on" : "off" );
+	fprintf(file, "debuglog %s\n", bDebugLog == debuglog_errors ? "errors" : bDebugLog == debuglog_on ? "on" : "off" );
 	fclose(file);
 }
 

@@ -25,7 +25,8 @@ void HTTPResponse::sendto(SOCKET s) const
 	n += sprintf_s(send_buffer, SEND_BUFFER_LENGTH,
 		"HTTP/1.1 %d %s\r\n", iStatus, (const char*)cpStatus);
 #if !_DEBUG
-	if (_settings.bDebugLog)
+	if (_settings.bDebugLog == Settings::debuglog_on
+		|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 	{
 		printf("%x: %s\n", s, send_buffer);
 	}
@@ -38,7 +39,8 @@ void HTTPResponse::sendto(SOCKET s) const
 	}
 
 #if _DEBUG
-	if (_settings.bDebugLog)
+	if (_settings.bDebugLog == Settings::debuglog_on
+		|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 	{
 		printf("%x:\n%s\n", s, send_buffer);
 	}
@@ -66,7 +68,8 @@ void HTTPResponseHTML::sendto(SOCKET s) const
 	Fiber_Send(s, (void*)(const char*)Content, iContentLength, &dwBytes, 0);
 
 #if _DEBUG
-	if (_settings.bDebugLog)
+	if (_settings.bDebugLog == Settings::debuglog_on
+		|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 	{
 		puts(Content);
 	}
@@ -121,7 +124,8 @@ void HTTPResponseFile::sendto(SOCKET s) const
 
 #if _DEBUG
 	bool bText;
-	if (_settings.bDebugLog)
+	if (_settings.bDebugLog == Settings::debuglog_on
+		|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 	{
 		bText = ( memcmp(ContentType,"text",5) == 0 );
 		if (!bText)
@@ -137,7 +141,8 @@ void HTTPResponseFile::sendto(SOCKET s) const
 		DWORD dwBytes = 0;
 		Fiber_Send(s, send_buffer, n, &dwBytes, 0);
 #if _DEBUG
-		if (_settings.bDebugLog)
+		if (_settings.bDebugLog == Settings::debuglog_on
+			|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 		{
 			if (bText)
 			{
@@ -147,7 +152,8 @@ void HTTPResponseFile::sendto(SOCKET s) const
 #endif
 	}
 #if _DEBUG
-	if (_settings.bDebugLog)
+	if (_settings.bDebugLog == Settings::debuglog_on
+		|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 	{
 		puts("");
 		puts("");

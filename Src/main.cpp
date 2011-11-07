@@ -221,7 +221,7 @@ void CALLBACK FiberProc(void* lpParameter)
 		if (!Fiber_AcceptEx(pFiberData->listensocket, socket, &acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes))
 			error("AcceptEx Failed");
 
-		if (_settings.bDebugLog)
+		if (_settings.bDebugLog == Settings::debuglog_on)
 		{
 			sockaddr* pcli_addr;
 			sockaddr* psrv_addr;
@@ -248,7 +248,7 @@ void CALLBACK FiberProc(void* lpParameter)
 		while(dostuff(pFiberData, socket))
 			;
 
-		if (_settings.bDebugLog)
+		if (_settings.bDebugLog == Settings::debuglog_on)
 			printf("%x: Disconnecting...\n", socket);
 		if (!Fiber_DisconnectEx(socket, TF_REUSE_SOCKET))
 		{
@@ -256,11 +256,11 @@ void CALLBACK FiberProc(void* lpParameter)
 			//if (iError != WSAENOTCONN && iError != WSAECONNRESET)
 			error("DisconnectEx Failed");
 		}
-		if (_settings.bDebugLog)
+		if (_settings.bDebugLog == Settings::debuglog_on)
 			printf("%x: Disconnected\n", socket);
 	}
 
-	if (_settings.bDebugLog)
+	if (_settings.bDebugLog == Settings::debuglog_on)
 		printf("Fiber - Done\n");
 	Fiber_Finish();
 }
@@ -272,6 +272,13 @@ void CALLBACK FiberProc(void* lpParameter)
  for each connection.  It handles all communication
  once a connnection has been established.
  *****************************************/
+#define senderror(response) \
+	if (_settings.bDebugLog == Settings::debuglog_on \
+		|| _settings.bDebugLog == Settings::debuglog_errors) \
+	printf("%x:\n%s", sock, buffer); \
+	response.sendto(sock);
+
+
 bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 {
 	DWORD headerbytes = 0;
@@ -302,12 +309,9 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 			break;
 	}
 
-	if (_settings.bDebugLog)
-		printf("%x:\n%s", sock, buffer);
-
 	if (!line_end)
 	{
-		status500.sendto(sock);
+		senderror(status500);
 		return false;
 	}
 
@@ -319,7 +323,7 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		splitpoint[2] = strpbrk(splitpoint[1]+1," \r\n");
 	if ( !(splitpoint[0] && splitpoint[1] && splitpoint[2] && *splitpoint[0] == ' ' && *splitpoint[1] == ' ' && *splitpoint[2] != ' ') )
 	{
-		status400.sendto(sock);
+		senderror(status400);
 		return false;
 	}
 	dynamic_string method(line_start, splitpoint[0] - line_start);
@@ -328,19 +332,19 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 
 	if (method != "GET" && method != "HEAD")
 	{
-		status501.sendto(sock);
+		senderror(status501);
 		return false;
 	}
 
 	if (HTTPVersion != "HTTP/1.0" && HTTPVersion != "HTTP/1.1")
 	{
-		status505.sendto(sock);
+		senderror(status505);
 		return false;
 	}
 
 	if (URL.Len() <= 0 || URL[0] != '/')
 	{
-		status400.sendto(sock);
+		senderror(status400);
 		return false;
 	}
 
@@ -379,7 +383,8 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		}
 		if (!line_end)
 		{
-			status431.sendto(sock);
+			senderror(status431);
+			return false;
 		}
 
 		if (line_end == line_start)
@@ -405,7 +410,7 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 			goto foundhost;
 		}
 	}
-		status400nohost.sendto(sock);
+		senderror(status400nohost);
 		return false;
 foundhost:
 	for (int i = 0; i < (int)_settings.hostnames.Num(); i++)
@@ -415,7 +420,7 @@ foundhost:
 			goto validhost;
 		}
 	}
-		status400badhost.sendto(sock);
+		senderror(status400badhost);
 		return false;
 validhost:
 	bool keepalive = (HTTPVersion == "HTTP/1.1"); // HTTP/1.1 is keep-alive by default
@@ -438,7 +443,7 @@ validhost:
 	// This is just a little bit hacky...
 	if ( strstr( URL, "/../" ) )
 	{
-		status400.sendto(sock);
+		senderror(status400);
 		return false;
 	}
 	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(fullhost, URL, URL, sock);
@@ -449,6 +454,10 @@ validhost:
 	//		pResponse->Headers.AddItem(HTTPHeader("Connection", "Keep-Alive"));
 	//	}
 	//}
+	if (_settings.bDebugLog == Settings::debuglog_on
+		|| _settings.bDebugLog == Settings::debuglog_errors && pResponse->iStatus >= 300)
+		printf("%x:\n%s", sock, buffer);
+
 	pResponse->sendto(sock);
 
 	// this is a hack...
