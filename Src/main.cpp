@@ -332,7 +332,7 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		return false;
 	}
 
-	if (HTTPVersion != "HTTP/1.1")
+	if (HTTPVersion != "HTTP/1.0" && HTTPVersion != "HTTP/1.1")
 	{
 		status505.sendto(sock);
 		return false;
