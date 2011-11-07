@@ -418,7 +418,7 @@ foundhost:
 		status400badhost.sendto(sock);
 		return false;
 validhost:
-	bool keepalive = true; // keep-alive by default
+	bool keepalive = (HTTPVersion == "HTTP/1.1"); // HTTP/1.1 is keep-alive by default
 	for (int i = 0; i < (int)headers.Num(); i++)
 	{
 		if (headers[i].Header == "Connection")
@@ -426,8 +426,12 @@ validhost:
 			if (headers[i].Value == "close")
 			{
 				keepalive = false;
-				break;
 			}
+			else if (headers[i].Value == "keep-alive")
+			{
+				keepalive = true;
+			}
+			break;
 		}
 	}
 
