@@ -56,6 +56,33 @@ char status404content[] =
 	"</html>\r\n";
 const HTTPResponseHTML status404(404, "File Not Found", sizeof(status404content)-1, status404content);
 
+char status413content[] =
+	"<html>\r\n"
+	"<body>\r\n"
+	"<h1>413 Request Too Large</h1>\r\n"
+	"<p>Please reduce the size of your request.</p>\r\n"
+	"</body>\r\n"
+	"</html>\r\n";
+const HTTPResponseHTML status413(413, "Request Too Large", sizeof(status413content)-1, status413content);
+
+char status414content[] =
+	"<html>\r\n"
+	"<body>\r\n"
+	"<h1>414 Request URI Too Long</h1>\r\n"
+	"<p>Please check your request URI.</p>\r\n"
+	"</body>\r\n"
+	"</html>\r\n";
+const HTTPResponseHTML status414(414, "Request URI Too Long", sizeof(status414content)-1, status414content);
+
+char status431content[] =
+	"<html>\r\n"
+	"<body>\r\n"
+	"<h1>431 Request Header Fields Too Large</h1>\r\n"
+	"<p>Please reduce the size of your request.</p>\r\n"
+	"</body>\r\n"
+	"</html>\r\n";
+const HTTPResponseHTML status431(431, "Request Header Fields Too Large", sizeof(status431content)-1, status431content);
+
 const char status500content[] =
 	"<html>\r\n"
 	"<body>\r\n"

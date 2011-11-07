@@ -9,6 +9,9 @@ extern const HTTPResponseHTML status400nohost;
 extern const HTTPResponseHTML status400badhost;
 extern const HTTPResponseHTML status403;
 extern const HTTPResponseHTML status404;
+extern const HTTPResponseHTML status413;
+extern const HTTPResponseHTML status414;
+extern const HTTPResponseHTML status431;
 
 extern const HTTPResponseHTML status500;
 extern const HTTPResponseHTML status501;

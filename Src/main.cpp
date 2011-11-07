@@ -275,18 +275,21 @@ void CALLBACK FiberProc(void* lpParameter)
 bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 {
 	DWORD headerbytes = 0;
-	auto_ptr_array<char> buffer = new char[HEADER_BUFFER_LENGTH];
+	auto_ptr_array<char> buffer = new char[HEADER_BUFFER_LENGTH + 1];
 	char* line_start = buffer;
 	char* line_end = buffer;
-	while(1)
+	while(headerbytes < HEADER_BUFFER_LENGTH)
 	{
+		line_end = buffer + headerbytes;
 		DWORD dwBytes = 0;
 		DWORD dwFlags = 0;
-		line_end = buffer + dwBytes;
-		BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - dwBytes - 1, &dwBytes, &dwFlags);
+		BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - headerbytes - 1, &dwBytes, &dwFlags);
 		if ( !result )
 		{
-			if (WSAGetLastError() == WSAECONNABORTED)
+			int iError = WSAGetLastError( );
+			if (iError == WSAECONNABORTED
+				|| iError == WSAENETRESET
+				|| iError == WSAECONNRESET)
 				return false;
 			error("Recv failed");
 		}
@@ -302,7 +305,7 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 	if (_settings.bDebugLog)
 		printf("%x:\n%s", sock, buffer);
 
-	if (headerbytes >= 1023)
+	if (!line_end)
 	{
 		status500.sendto(sock);
 		return false;
@@ -351,16 +354,18 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		}
 		line_end = line_start;
 		line_end = strpbrk(line_end,"\r\n");
-		while ( !line_end )
+		while ( !line_end && headerbytes < HEADER_BUFFER_LENGTH )
 		{
 			line_end = buffer + headerbytes;
 			DWORD dwBytes = 0;
 			DWORD dwFlags = 0;
-			line_end = buffer + dwBytes;
-			BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - dwBytes - 1, &dwBytes, &dwFlags);
+			BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - headerbytes - 1, &dwBytes, &dwFlags);
 			if ( !result )
 			{
-				if (WSAGetLastError() == WSAECONNABORTED)
+				int iError = WSAGetLastError( );
+				if (iError == WSAECONNABORTED
+					|| iError == WSAENETRESET
+					|| iError == WSAECONNRESET)
 					return false;
 				error("Recv failed");
 			}
@@ -372,6 +377,11 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 			if ( line_end )
 				break;
 		}
+		if (!line_end)
+		{
+			status431.sendto(sock);
+		}
+
 		if (line_end == line_start)
 		{
 			// blank line == end of headers / start of body
