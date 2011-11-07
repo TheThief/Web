@@ -427,10 +427,10 @@ validhost:
 			{
 				keepalive = false;
 			}
-			else if (headers[i].Value == "keep-alive")
-			{
-				keepalive = true;
-			}
+			//else if (headers[i].Value == "keep-alive")
+			//{
+			//	keepalive = true;
+			//}
 			break;
 		}
 	}
@@ -442,6 +442,13 @@ validhost:
 		return false;
 	}
 	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(fullhost, URL, URL, sock);
+	//if (HTTPVersion == "HTTP/1.0" && keepalive)
+	//{
+	//	if (pResponse->iStatus == 200 || pResponse->iStatus == 301)
+	//	{
+	//		pResponse->Headers.AddItem(HTTPHeader("Connection", "Keep-Alive"));
+	//	}
+	//}
 	pResponse->sendto(sock);
 
 	// this is a hack...
