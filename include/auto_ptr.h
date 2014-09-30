@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <new.h>
 
+typedef unsigned char byte;
+
 template <class T>
 class auto_ptr
 {

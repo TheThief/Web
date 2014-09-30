@@ -90,9 +90,9 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string host, const char*
 		{
 			if (FileName[FileName.Len() - 1] != '/')
 			{
-				HTTPResponse* pResponse = new HTTPResponseHTML(status301);
-				pResponse->Headers.AddItem(HTTPHeader("Location", dynamic_string("http://") + host + fullfile + "/"));
-				return pResponse;
+				HTTPResponse* pResponse301 = new HTTPResponseHTML(status301);
+				pResponse301->Headers.AddItem(HTTPHeader("Location", dynamic_string("http://") + host + fullfile + "/"));
+				return pResponse301;
 			}
 			else
 			{

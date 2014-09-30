@@ -1,4 +1,4 @@
-#define _WIN32_WINNT 0x0501
+#define _WIN32_WINNT 0x0600
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <MSWSock.h>
@@ -230,16 +230,16 @@ void CALLBACK FiberProc(void* lpParameter)
 			if (pcli_addr->sa_family == AF_INET)
 			{
 				const struct sockaddr_in& cli_addr4 = (sockaddr_in&)*pcli_addr;
-				printf("%x: IPv4 connection from %s\n", socket, inet_ntoa(cli_addr4.sin_addr));
+				char address[INET_ADDRSTRLEN] = "";
+				inet_ntop(AF_INET, (PVOID)&cli_addr4.sin_addr, address, sizeof(address));
+				printf("%x: IPv4 connection from %s\n", socket, address);
 			}
 			else if (pcli_addr->sa_family == AF_INET6)
 			{
 				const struct sockaddr_in6& cli_addr6 = (sockaddr_in6&)*pcli_addr;
-				printf("%x: IPv6 connection from [%x:%x:%x:%x:%x:%x:%x:%x]\n", socket,
-					ntohs(cli_addr6.sin6_addr.u.Word[0]), ntohs(cli_addr6.sin6_addr.u.Word[1]),
-					ntohs(cli_addr6.sin6_addr.u.Word[2]), ntohs(cli_addr6.sin6_addr.u.Word[3]),
-					ntohs(cli_addr6.sin6_addr.u.Word[4]), ntohs(cli_addr6.sin6_addr.u.Word[5]),
-					ntohs(cli_addr6.sin6_addr.u.Word[6]), ntohs(cli_addr6.sin6_addr.u.Word[7]));
+				char address[INET6_ADDRSTRLEN] = "";
+				inet_ntop(AF_INET6, (PVOID)&cli_addr6.sin6_addr, address, sizeof(address));
+				printf("%x: IPv6 connection from [%s]\n", socket, address);
 			}
 			else
 				error("Bad socket in accept");

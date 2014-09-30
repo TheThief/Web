@@ -6,6 +6,8 @@
 
 #include "auto_ptr.h"
 
+#include <memory>
+
 class dynamic_string : protected dynamic_array<char>
 {
 protected:
@@ -132,8 +134,7 @@ public:
 		}
 		else
 		{
-			size_t iNum = Num();
-			if (iNum > 0)
+			if (Num() > 0)
 			{
 				return Num() - 1; // discount null terminator
 			}

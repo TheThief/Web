@@ -15,77 +15,80 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Src\filetree.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\HTTPResponse.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\mimetypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\responses.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\settings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\virtual_file.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\threadpool.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\threadpool_winsock.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
     <ClInclude Include="include\auto_ptr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\dynamic_string.h">
+    <ClInclude Include="include\dynamic_string.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\filetree.h">
+    <ClInclude Include="include\filetree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\HTTPResponse.h">
+    <ClInclude Include="include\HTTPResponse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\mimetypes.h">
+    <ClInclude Include="include\mimetypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\responses.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\settings.h">
+    <ClInclude Include="include\settings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\virtual_file.h">
+    <ClInclude Include="include\threadpool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Resource Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\threadpool.h">
+    <ClInclude Include="include\threadpool_winsock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\threadpool_winsock.h">
+    <ClInclude Include="include\virtual_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Icon.ico">
-      <Filter>Resource Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Web.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="source\filetree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\HTTPResponse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\mimetypes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\responses.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\settings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\threadpool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\threadpool_winsock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\uri.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\virtual_file.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

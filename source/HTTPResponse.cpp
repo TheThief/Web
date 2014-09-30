@@ -146,7 +146,7 @@ void HTTPResponseFile::sendto(SOCKET s) const
 		{
 			if (bText)
 			{
-				_write(stdout->_file, send_buffer, n);
+				_write(/*stdout*/ 1, send_buffer, n);
 			}
 		}
 #endif
