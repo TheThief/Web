@@ -1,4 +1,3 @@
-#include "../include/auto_ptr.h"
 #include "../include/dynamic_string.h"
 
 //http://www.ietf.org/rfc/rfc2396.txt

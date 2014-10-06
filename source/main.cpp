@@ -9,19 +9,17 @@
 #include <io.h>
 #include <tchar.h>
 
+// this is a hack :)
 _Check_return_ __inline char * __CRTDECL _strspnp
-( 
-    _In_z_ const char * _Cpc1, 
-    _In_z_ const char * _Cpc2
-) 
-{ 
-    return _Cpc1==NULL ? NULL : ((*(_Cpc1 += strspn(_Cpc1,_Cpc2))!='\0') ? (char*)_Cpc1 : NULL); 
+	(_In_z_ const char * _Cpc1, _In_z_ const char * _Cpc2)
+{
+	return _Cpc1 == nullptr ? nullptr : ((*(_Cpc1 += strspn(_Cpc1, _Cpc2)) != '\0') ? (char*)_Cpc1 : nullptr);
 }
 
 #include "settings.h"
 #include "mimetypes.h"
 #include "responses.h"
-#include "auto_ptr.h"
+#include "dynamic_string.h"
 #include "filetree.h"
 
 #include "threadpool_winsock.h"
@@ -37,25 +35,25 @@ extern void error(char *msg)
 	LPTSTR pMessageBuffer;
 	int iError;
 
-	iError = GetLastError( );
+	iError = GetLastError();
 	if (iError)
 	{
 		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-			NULL, iError, 0, (LPTSTR) &pMessageBuffer, 0, NULL );
+			nullptr, iError, 0, (LPTSTR)&pMessageBuffer, 0, nullptr);
 		wprintf(L"System Error: %d: %s\n", iError, pMessageBuffer);
 		LocalFree(pMessageBuffer);
 	}
 
-	iError = WSAGetLastError( );
+	iError = WSAGetLastError();
 	if (iError)
 	{
 		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-			NULL, iError, 0, (LPTSTR) &pMessageBuffer, 0, NULL );
+			nullptr, iError, 0, (LPTSTR)&pMessageBuffer, 0, nullptr);
 		wprintf(L"Winsock Error: %d: %s\n", iError, pMessageBuffer);
 		LocalFree(pMessageBuffer);
 	}
 
-	WSACleanup( );
+	WSACleanup();
 
 	exit(1);
 }
@@ -115,24 +113,27 @@ int main(int argc, char *argv[])
 
 	if (argc > 1) confFile = argv[1];
 	errno_t err = 0;
-	if ( (err = _access_s(confFile, 0)) == 0 ){
+	if ((err = _access_s(confFile, 0)) == 0)
+	{
 		_settings.load(confFile);
-	}else{
+	}
+	else
+	{
 		_settings.save(confFile);
 	}
 	_mimetypes.load(_settings.mimeTypesFile);
 
 	WSADATA wsaData;
-	if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != 0 )
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 		error("ERROR initializing Winsock");
-	if ( wsaData.wVersion != MAKEWORD( 2, 2 ) )
+	if (wsaData.wVersion != MAKEWORD(2, 2))
 		error("ERROR initializing Winsock: Incompatible version");
 
 	struct sockaddr_in serv_addr;
 	struct sockaddr_in6 serv_addr6;
 
 	// IPv4
-	listensock = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	listensock = WSASocket(AF_INET, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
 	if (listensock == INVALID_SOCKET)
 	{
 		puts("Couldn't open IPv4 socket");
@@ -145,12 +146,12 @@ int main(int argc, char *argv[])
 		serv_addr.sin_port = htons(_settings.port);
 		if (bind(listensock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 			error("ERROR on binding");
-		if (listen(listensock,5) < 0)
+		if (listen(listensock, 5) < 0)
 			error("ERROR on listening");
 	}
 
 	// IPv6
-	listensock6 = WSASocket(AF_INET6, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	listensock6 = WSASocket(AF_INET6, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
 	if (listensock6 == INVALID_SOCKET)
 	{
 		puts("Couldn't open IPv6 socket");
@@ -163,7 +164,7 @@ int main(int argc, char *argv[])
 		serv_addr6.sin6_port = htons(_settings.port);
 		if (bind(listensock6, (struct sockaddr *) &serv_addr6, sizeof(serv_addr6)) < 0)
 			error("ERROR on binding");
-		if (listen(listensock6,5) < 0)
+		if (listen(listensock6, 5) < 0)
 			error("ERROR on listening");
 	}
 
@@ -211,14 +212,14 @@ void CALLBACK FiberProc(void* lpParameter)
 {
 	FiberData_Socket* pFiberData = (FiberData_Socket*)lpParameter;
 
-	SOCKET socket = WSASocket(pFiberData->addressfamily, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	SOCKET socket = WSASocket(pFiberData->addressfamily, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
 	BindHandle((HANDLE)socket);
 
 	while (true)
 	{
 		DWORD dwBytes;
 		byte acceptbuffer[ACCEPT_BUFFER_LENGTH];
-		if (!Fiber_AcceptEx(pFiberData->listensocket, socket, &acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &dwBytes))
+		if (!Fiber_AcceptEx(pFiberData->listensocket, socket, &acceptbuffer, 0, sizeof(sockaddr_storage) + 16, sizeof(sockaddr_storage) + 16, &dwBytes))
 			error("AcceptEx Failed");
 
 		if (_settings.bDebugLog == Settings::debuglog_on)
@@ -226,7 +227,7 @@ void CALLBACK FiberProc(void* lpParameter)
 			sockaddr* pcli_addr;
 			sockaddr* psrv_addr;
 			int cli_addr_len, srv_addr_len;
-			pGetAcceptExSockaddrs(&acceptbuffer, 0, sizeof(sockaddr_storage)+16, sizeof(sockaddr_storage)+16, &psrv_addr, &srv_addr_len, &pcli_addr, &cli_addr_len);
+			pGetAcceptExSockaddrs(&acceptbuffer, 0, sizeof(sockaddr_storage) + 16, sizeof(sockaddr_storage) + 16, &psrv_addr, &srv_addr_len, &pcli_addr, &cli_addr_len);
 			if (pcli_addr->sa_family == AF_INET)
 			{
 				const struct sockaddr_in& cli_addr4 = (sockaddr_in&)*pcli_addr;
@@ -245,7 +246,7 @@ void CALLBACK FiberProc(void* lpParameter)
 				error("Bad socket in accept");
 		}
 
-		while(dostuff(pFiberData, socket))
+		while (dostuff(pFiberData, socket))
 			;
 
 		if (_settings.bDebugLog == Settings::debuglog_on)
@@ -268,7 +269,7 @@ void CALLBACK FiberProc(void* lpParameter)
 #define HEADER_BUFFER_LENGTH (1*1024)
 #define   SEND_BUFFER_LENGTH (1*1024)
 /******** DOSTUFF() *********************
- There is a separate instance of this function 
+ There is a separate instance of this function
  for each connection.  It handles all communication
  once a connnection has been established.
  *****************************************/
@@ -282,18 +283,18 @@ void CALLBACK FiberProc(void* lpParameter)
 bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 {
 	DWORD headerbytes = 0;
-	auto_ptr_array<char> buffer = new char[HEADER_BUFFER_LENGTH + 1];
-	char* line_start = buffer;
-	char* line_end = buffer;
-	while(headerbytes < HEADER_BUFFER_LENGTH)
+	std::unique_ptr<char[]> buffer = std::make_unique<char[]>(HEADER_BUFFER_LENGTH + 1);
+	char* line_start = buffer.get();
+	char* line_end = line_start;
+	while (headerbytes < HEADER_BUFFER_LENGTH)
 	{
-		line_end = buffer + headerbytes;
+		line_end = buffer.get() + headerbytes;
 		DWORD dwBytes = 0;
 		DWORD dwFlags = 0;
 		BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - headerbytes - 1, &dwBytes, &dwFlags);
-		if ( !result )
+		if (!result)
 		{
-			int iError = WSAGetLastError( );
+			int iError = WSAGetLastError();
 			if (iError == WSAECONNABORTED
 				|| iError == WSAENETRESET
 				|| iError == WSAECONNRESET)
@@ -303,9 +304,9 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		if (dwBytes <= 0)
 			return false; // Connection closed
 		headerbytes += dwBytes;
-		buffer[headerbytes]='\0';
-		line_end = strpbrk(line_end,"\r\n");
-		if ( line_end )
+		buffer[headerbytes] = '\0';
+		line_end = strpbrk(line_end, "\r\n");
+		if (line_end)
 			break;
 	}
 
@@ -315,20 +316,20 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		return false;
 	}
 
-	char* splitpoint[3] = {NULL,NULL,NULL};
-	splitpoint[0] = strpbrk(line_start," \r\n");
-	if ( splitpoint[0] )
-		splitpoint[1] = strpbrk(splitpoint[0]+1," \r\n");
-	if ( splitpoint[1] )
-		splitpoint[2] = strpbrk(splitpoint[1]+1," \r\n");
-	if ( !(splitpoint[0] && splitpoint[1] && splitpoint[2] && *splitpoint[0] == ' ' && *splitpoint[1] == ' ' && *splitpoint[2] != ' ') )
+	char* splitpoint[3] = { nullptr, nullptr, nullptr };
+	splitpoint[0] = strpbrk(line_start, " \r\n");
+	if (splitpoint[0])
+		splitpoint[1] = strpbrk(splitpoint[0] + 1, " \r\n");
+	if (splitpoint[1])
+		splitpoint[2] = strpbrk(splitpoint[1] + 1, " \r\n");
+	if (!(splitpoint[0] && splitpoint[1] && splitpoint[2] && *splitpoint[0] == ' ' && *splitpoint[1] == ' ' && *splitpoint[2] != ' '))
 	{
 		senderror(status400);
 		return false;
 	}
 	dynamic_string method(line_start, splitpoint[0] - line_start);
-	dynamic_string URL(splitpoint[0]+1, splitpoint[1] - (splitpoint[0]+1));
-	dynamic_string HTTPVersion(splitpoint[1]+1, splitpoint[2] - (splitpoint[1]+1));
+	dynamic_string URL(splitpoint[0] + 1, splitpoint[1] - (splitpoint[0] + 1));
+	dynamic_string HTTPVersion(splitpoint[1] + 1, splitpoint[2] - (splitpoint[1] + 1));
 
 	if (method != "GET" && method != "HEAD")
 	{
@@ -349,7 +350,7 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 	}
 
 	dynamic_array<HTTPHeader> headers;
-	while(1)
+	while (1)
 	{
 		line_start = line_end + 1;
 		if (*line_end == '\r' && *line_start == '\n')
@@ -357,16 +358,16 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 			line_start++;
 		}
 		line_end = line_start;
-		line_end = strpbrk(line_end,"\r\n");
-		while ( !line_end && headerbytes < HEADER_BUFFER_LENGTH )
+		line_end = strpbrk(line_end, "\r\n");
+		while (!line_end && headerbytes < HEADER_BUFFER_LENGTH)
 		{
-			line_end = buffer + headerbytes;
+			line_end = buffer.get() + headerbytes;
 			DWORD dwBytes = 0;
 			DWORD dwFlags = 0;
 			BOOL result = Fiber_Recv(sock, line_end, HEADER_BUFFER_LENGTH - headerbytes - 1, &dwBytes, &dwFlags);
-			if ( !result )
+			if (!result)
 			{
-				int iError = WSAGetLastError( );
+				int iError = WSAGetLastError();
 				if (iError == WSAECONNABORTED
 					|| iError == WSAENETRESET
 					|| iError == WSAECONNRESET)
@@ -376,9 +377,9 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 			if (dwBytes <= 0)
 				return false; // Connection closed
 			headerbytes += dwBytes;
-			buffer[headerbytes]='\0';
-			line_end = strpbrk(line_end,"\r\n");
-			if ( line_end )
+			buffer[headerbytes] = '\0';
+			line_end = strpbrk(line_end, "\r\n");
+			if (line_end)
 				break;
 		}
 		if (!line_end)
@@ -410,8 +411,8 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 			goto foundhost;
 		}
 	}
-		senderror(status400nohost);
-		return false;
+	senderror(status400nohost);
+	return false;
 foundhost:
 	for (int i = 0; i < (int)_settings.hostnames.Num(); i++)
 	{
@@ -420,8 +421,8 @@ foundhost:
 			goto validhost;
 		}
 	}
-		senderror(status400badhost);
-		return false;
+	senderror(status400badhost);
+	return false;
 validhost:
 	bool keepalive = (HTTPVersion == "HTTP/1.1"); // HTTP/1.1 is keep-alive by default
 	for (int i = 0; i < (int)headers.Num(); i++)
@@ -441,7 +442,7 @@ validhost:
 	}
 
 	// This is just a little bit hacky...
-	if ( strstr( URL, "/../" ) )
+	if (strstr(URL, "/../"))
 	{
 		senderror(status400);
 		return false;

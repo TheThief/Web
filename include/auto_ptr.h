@@ -1,39 +1,11 @@
 #pragma once
 
+#error auto_ptr is deprecated, use shared_ptr
+
 #include <assert.h>
 #include <new.h>
 
 typedef unsigned char byte;
-
-template <class T>
-class auto_ptr
-{
-protected:
-	T*ptr;
-public:
-	auto_ptr(T*rhs=NULL) : ptr(rhs) { }
-	~auto_ptr() { delete ptr; }
-
-	operator T*() { return ptr; }
-	T* operator ->() { return ptr; }
-	T operator *() { return *ptr; }
-	T* operator =(T*rhs) { ptr=rhs; return ptr; }
-};
-
-template <class T>
-class auto_ptr_array
-{
-protected:
-	T*ptr;
-public:
-	auto_ptr_array(T*rhs=NULL) : ptr(rhs) { }
-	~auto_ptr_array() { delete [] ptr; }
-
-	operator T*() { return ptr; }
-	T* operator ->() { return ptr; }
-	T operator *() { return *ptr; }
-	T* operator =(T*rhs) { ptr=rhs; return ptr; }
-};
 
 class refcounted_base
 {
@@ -131,7 +103,7 @@ protected:
 	}
 
 public:
-	refcounted_base_ptr() : ptr(NULL) { }
+	refcounted_base_ptr() : ptr(nullptr) { }
 	refcounted_base_ptr(const refcounted_base_ptr& rhs) : ptr(rhs.ptr)
 	{
 		AddRef();
@@ -140,13 +112,13 @@ public:
 	{
 		AddRef();
 	}
-	refcounted_base_ptr(void*null) : ptr(NULL)
+	refcounted_base_ptr(void*null) : ptr(nullptr)
 	{
-		assert(null == NULL);
+		assert(null == nullptr);
 	}
-	refcounted_base_ptr(int null) : ptr(NULL)
+	refcounted_base_ptr(int null) : ptr(nullptr)
 	{
-		assert(null == NULL);
+		assert(null == nullptr);
 	}
 
 	virtual ~refcounted_base_ptr()
@@ -173,7 +145,7 @@ public:
 
 	operator bool() const
 	{
-		return ptr != NULL;
+		return ptr != nullptr;
 	}
 
 	int GetRefCount() const
@@ -224,135 +196,5 @@ public:
 	refcounted_memory_ptr& operator =(const refcounted_memory_ptr& rhs)
 	{
 		return (refcounted_memory_ptr&)refcounted_base_ptr::operator =(rhs);
-	}
-};
-
-template <class T>
-class dynamic_array
-{
-protected:
-	refcounted_memory_ptr ptr;
-	size_t iNum;
-	size_t iMax;
-public:
-	dynamic_array() : ptr(NULL), iNum(0), iMax(0)
-	{
-	}
-	dynamic_array(const dynamic_array& rhs) : ptr(rhs.ptr), iNum(rhs.iNum), iMax(rhs.iMax)
-	{
-	}
-	~dynamic_array()
-	{
-		for (size_t i=0; i<iNum; i++)
-		{
-			(*this)[i].~T();
-		}
-		ptr = NULL;
-	}
-
-	T& operator [](size_t i) const
-	{
-		assert(i>=0 && i<iNum);
-		return ((T*)ptr)[i];
-	}
-
-	size_t Num() const
-	{
-		return iNum;
-	}
-
-	size_t AddItem(T& Item)
-	{
-		if (iNum >= iMax)
-		{
-			ExpandMaxSize();
-		}
-		size_t i = iNum;
-		iNum++;
-		new(&(((T*)ptr)[i])) T(Item);
-		return i;
-	}
-
-	void ExpandMaxSize(int Amount = 32)
-	{
-		SetMaxSize(iMax + Amount);
-	}
-
-	void SetMaxSize(size_t MaxSize)
-	{
-		assert(MaxSize >= iNum);
-		if (iMax != MaxSize)
-		{
-			iMax = MaxSize;
-			if (MaxSize <= 0)
-			{
-				ptr = NULL;
-			}
-			else
-			{
-				refcounted_memory_ptr ptrNew = new(iMax*sizeof(T)) refcounted_memory();
-				if (ptr)
-				{
-					if (iNum>0)
-					{
-						memcpy((T*)ptrNew, (T*)ptr, iNum*sizeof(T));
-					}
-				}
-				ptr = ptrNew;
-			}
-		}
-	}
-
-	void SetSize(size_t Size)
-	{
-		if (Size > iNum)
-		{
-			clonebuffer(Size - iNum + 32);
-			if (Size > iMax)
-			{
-				SetMaxSize(Size + 32);
-			}
-		}
-
-		if (iNum > Size)
-		{
-			clonebuffer();
-			for (size_t i=Size; i<iNum; i++)
-			{
-				(*this)[i].~T();
-			}
-		}
-
-		if (iNum < Size)
-		{
-			for (size_t i=iNum; i<Size; i++)
-			{
-				new(&(((T*)ptr)[i])) T();
-			}
-		}
-
-		iNum = Size;
-	}
-
-	void clonebuffer(size_t iSlack = 32)
-	{
-		if (ptr && ptr.GetRefCount() > 1)
-		{
-			if (iNum <= 0)
-			{
-				ptr = NULL;
-				iMax = 0;
-			}
-			else
-			{
-				iMax = iNum + iSlack;
-				refcounted_memory_ptr ptrNew = new(iMax*sizeof(T)) refcounted_memory();
-				if (ptr)
-				{
-					memcpy((T*)ptrNew, (T*)ptr, iNum*sizeof(T));
-				}
-				ptr = ptrNew;
-			}
-		}
 	}
 };

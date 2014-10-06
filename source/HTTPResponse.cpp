@@ -1,9 +1,9 @@
 #include <winsock2.h>
 
-#include <stdio.h>
+#include <cstdio>
+#include <memory>
 
 #include "HTTPResponse.h"
-#include "auto_ptr.h"
 #include "Settings.h"
 
 #include "threadpool_winsock.h"
@@ -21,8 +21,8 @@ HTTPResponse::HTTPResponse(__int16 _iStatus, dynamic_string _cpStatus)
 void HTTPResponse::sendto(SOCKET s) const
 {
 	int n = 0;
-	auto_ptr_array<char> send_buffer = new char[SEND_BUFFER_LENGTH];
-	n += sprintf_s(send_buffer, SEND_BUFFER_LENGTH,
+	std::unique_ptr<char[]> send_buffer = std::make_unique<char[]>(SEND_BUFFER_LENGTH);
+	n += sprintf_s(send_buffer.get(), SEND_BUFFER_LENGTH,
 		"HTTP/1.1 %d %s\r\n", iStatus, (const char*)cpStatus);
 #if !_DEBUG
 	if (_settings.bDebugLog == Settings::debuglog_on
@@ -34,7 +34,7 @@ void HTTPResponse::sendto(SOCKET s) const
 
 	for (size_t i=0; i<Headers.Num(); i++)
 	{
-		n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n,
+		n += sprintf_s(send_buffer.get() + n, SEND_BUFFER_LENGTH - n,
 			"%s: %s\r\n", (const char*)Headers[i].Header, (const char*)Headers[i].Value);
 	}
 
@@ -46,10 +46,10 @@ void HTTPResponse::sendto(SOCKET s) const
 	}
 #endif
 
-	n += sprintf_s(send_buffer+n, SEND_BUFFER_LENGTH-n, "\r\n");
+	n += sprintf_s(send_buffer.get() + n, SEND_BUFFER_LENGTH - n, "\r\n");
 
 	DWORD dwBytes = 0;
-	Fiber_Send(s, send_buffer, n, &dwBytes, 0);
+	Fiber_Send(s, send_buffer.get(), n, &dwBytes, 0);
 }
 
 HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content)
@@ -135,18 +135,18 @@ void HTTPResponseFile::sendto(SOCKET s) const
 	}
 #endif
 	int n = 0;
-	auto_ptr_array<char> send_buffer = new char[SEND_BUFFER_LENGTH];
-	while((n =_read(FileHandle, send_buffer, SEND_BUFFER_LENGTH)) > 0)
+	std::unique_ptr<char[]> send_buffer = std::make_unique<char[]>(SEND_BUFFER_LENGTH);
+	while ((n = _read(FileHandle, send_buffer.get(), SEND_BUFFER_LENGTH)) > 0)
 	{
 		DWORD dwBytes = 0;
-		Fiber_Send(s, send_buffer, n, &dwBytes, 0);
+		Fiber_Send(s, send_buffer.get(), n, &dwBytes, 0);
 #if _DEBUG
 		if (_settings.bDebugLog == Settings::debuglog_on
 			|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 		{
 			if (bText)
 			{
-				_write(/*stdout*/ 1, send_buffer, n);
+				_write(/*stdout*/ 1, send_buffer.get(), n);
 			}
 		}
 #endif

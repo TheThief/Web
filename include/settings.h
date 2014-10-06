@@ -1,8 +1,10 @@
 #pragma once
 
-#include "virtual_file.h"
-#include "auto_ptr.h"
 #include <string>
+
+#include "virtual_file.h"
+#include "dynamic_array.h"
+#include "dynamic_string.h"
 
 class Settings {
 public:

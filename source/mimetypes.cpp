@@ -10,8 +10,8 @@
 
 
 void Mimetypes::load(std::string filePath){
-	string line,ext,type;
-	ifstream file(filePath.c_str());
+	std::string line, ext, type;
+	std::ifstream file(filePath.c_str());
 	if (file.is_open()){
 		while(!file.eof()){
 			getline(file,line);
@@ -31,7 +31,7 @@ void Mimetypes::load(std::string filePath){
 }
 
 std::string Mimetypes::getFullType(std::string extension){
-	map<string,string>::iterator iter = typeMap.find(extension);
+	auto iter = typeMap.find(extension);
 	if(iter != typeMap.end()){
 		return iter->second;
 	}else{
@@ -39,12 +39,12 @@ std::string Mimetypes::getFullType(std::string extension){
 	}
 }
 std::string Mimetypes::getType(std::string extension){
-	string str = getFullType(extension);
+	std::string str = getFullType(extension);
 	return str.substr(0,str.find_first_of("/"));
 }
 
 std::string Mimetypes::getSubType(std::string extension){
-	string str = getFullType(extension);
+	std::string str = getFullType(extension);
 	return str.substr(str.find_first_of("/")+1);
 }
 

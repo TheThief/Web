@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "auto_ptr.h"
+#include "dynamic_array.h"
 
 #include <memory>
 
@@ -14,21 +14,23 @@ protected:
 	const char* conststring;
 
 public:
-	dynamic_string() : dynamic_array(), conststring(NULL) { }
+	dynamic_string() : dynamic_array(), conststring(nullptr) { }
 	dynamic_string(const dynamic_string& rhs) : dynamic_array(rhs), conststring(rhs.conststring) { }
 	dynamic_string(const char* _conststring) : dynamic_array(), conststring(_conststring) { }
-	dynamic_string(const char* _conststring, size_t _len) : dynamic_array(), conststring(NULL)
+	dynamic_string(const char* _conststring, size_t _len) : dynamic_array(), conststring(nullptr)
 	{
 		SetSize(_len + 1);
-		memcpy((char*)ptr, _conststring, (_len) * sizeof(char));
-		((char*)ptr)[_len] = '\0';
+		memcpy((char*)ptr.get(), _conststring, (_len) * sizeof(char));
+		((char*)ptr.get())[_len] = '\0';
 	}
 #ifdef _STRING_
-	dynamic_string(const std::string& rhs) : dynamic_array(), conststring(NULL)
+	dynamic_string(const std::string& rhs) : dynamic_array(), conststring(nullptr)
 	{
 		SetSize(rhs.size()+1);
-		rhs._Copy_s(ptr, Size(), rhs.size()+1);
+		rhs._Copy_s((char*)ptr.get(), Size(), rhs.size() + 1);
 	}
+	//dynamic_string(std::string&& rhs) : dynamic_array(), conststring(nullptr)
+	// no equivalent of std::string::release(), so can't move from an std::string into other storage
 #endif
 
 	dynamic_string operator +(const dynamic_string& rhs)
@@ -62,7 +64,7 @@ public:
 			size_t iNewSize = iLen + irLen + 1; // + 1 for null terminator
 			clonebuffer(irLen + 32);
 			SetSize(iNewSize);
-			memcpy((char*)ptr + iLen, (const char*)rhs, (irLen + 1)*sizeof(char));
+			memcpy((char*)ptr.get() + iLen, (const char*)rhs, (irLen + 1)*sizeof(char));
 		}
 
 		return *this;
@@ -170,14 +172,14 @@ public:
 		clonebuffer(iNewMaxSize);
 		SetMaxSize(iNewMaxSize);
 		SetSize(iNewMaxSize);
-		memset(ptr, 0, iNewMaxSize);
+		memset(ptr.get(), 0, iNewMaxSize);
 	}
 
 	void Normalize()
 	{
 		if (!conststring && ptr)
 		{
-			iNum = strlen((char*)ptr) + 1;
+			iNum = strlen((char*)ptr.get()) + 1;
 			assert(iNum <= iMax);
 		}
 	}
@@ -190,7 +192,7 @@ public:
 		}
 		else if (ptr)
 		{
-			return ptr;
+			return (char*)ptr.get();
 		}
 		else
 		{
@@ -208,7 +210,7 @@ public:
 	{
 		assert(MaxLen() > 0);
 		clonebuffer();
-		return ptr;
+		return (char*)ptr.get();
 	}
 
 	static dynamic_string printf(const char* _Format, ...)
@@ -220,7 +222,7 @@ public:
 
 		dynamic_string newstring;
 		newstring.SetSize(iNewSize);
-		vsprintf_s(newstring.ptr, iNewSize, _Format, args);
+		vsprintf_s((char*)newstring.ptr.get(), iNewSize, _Format, args);
 
 		return newstring;
 	}
@@ -232,7 +234,7 @@ public:
 		{
 			SetSize(0);
 			SetMaxSize(0);
-			conststring = NULL;
+			conststring = nullptr;
 		}
 		else
 		{
@@ -242,8 +244,8 @@ public:
 				size_t iNewMaxSize = iNewSize + iSlack;
 				SetMaxSize(iNewMaxSize);
 				SetSize(iNewSize);
-				memcpy((char*)ptr, conststring, iNum*sizeof(char));
-				conststring = NULL;
+				memcpy((char*)ptr.get(), conststring, iNum*sizeof(char));
+				conststring = nullptr;
 			}
 			else
 			{
@@ -257,7 +259,7 @@ public:
 		clonebuffer();
 		if (ptr)
 		{
-			_strlwr_s(ptr, Size());
+			_strlwr_s((char*)ptr.get(), Size());
 		}
 	}
 
@@ -266,7 +268,7 @@ public:
 		clonebuffer();
 		if (ptr)
 		{
-			_strupr_s(ptr, Size());
+			_strupr_s((char*)ptr.get(), Size());
 		}
 	}
 };

@@ -4,7 +4,6 @@
 #include "virtual_file.h"
 
 #include "dynamic_string.h"
-#include "auto_ptr.h"
 #include "responses.h"
 #include "HTTPResponse.h"
 #include "mimetypes.h"
@@ -109,7 +108,7 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string host, const char*
 		{
 			dynamic_string fileext;
 			fileext.SetWritableBufferLen(32);
-			_splitpath_s(FileName, NULL, 0, NULL, 0, NULL, 0, fileext.GetWritableBuffer(), fileext.MaxSize());
+			_splitpath_s(FileName, nullptr, 0, nullptr, 0, nullptr, 0, fileext.GetWritableBuffer(), fileext.MaxSize());
 			fileext.Normalize();
 			return new HTTPResponseFile(200, "OK", FileHandle, _mimetypes.getType((const char*)fileext), _mimetypes.getSubType((const char*)fileext));
 		}

@@ -55,7 +55,7 @@ BOOL Fiber_Recv(SOCKET s, PVOID lpOutputBuffer, DWORD dwReceiveDataLength, LPDWO
 	WSABUF buffer;
 	buffer.buf = (CHAR*)lpOutputBuffer;
 	buffer.len = dwReceiveDataLength;
-	if (WSARecv(s, &buffer, 1, lpNumberOfBytesRecvd, lpFlags, pFiberData, NULL) == SOCKET_ERROR)
+	if (WSARecv(s, &buffer, 1, lpNumberOfBytesRecvd, lpFlags, pFiberData, nullptr) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != ERROR_IO_PENDING)
 			return FALSE;
@@ -77,7 +77,7 @@ BOOL Fiber_Send(SOCKET s, PVOID lpInputBuffer, DWORD dwSendDataLength, LPDWORD l
 	WSABUF buffer;
 	buffer.buf = (CHAR*)lpInputBuffer;
 	buffer.len = dwSendDataLength;
-	if (WSASend(s, &buffer, 1, lpNumberOfBytesSent, dwFlags, pFiberData, NULL) == SOCKET_ERROR)
+	if (WSASend(s, &buffer, 1, lpNumberOfBytesSent, dwFlags, pFiberData, nullptr) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != ERROR_IO_PENDING)
 			return FALSE;

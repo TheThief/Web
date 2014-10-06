@@ -8,8 +8,6 @@
 #include "settings.h"
 #include "virtual_file.h"
 
-using namespace std;
-
 extern void error(char *msg);
 
 Settings::Settings(){
@@ -18,17 +16,17 @@ Settings::Settings(){
 	hostnames.SetSize(0);
 	hostnames.AddItem(dynamic_string("localhost"));
 	hostnames.AddItem(dynamic_string("127.0.0.1"));
-	physical_webroot = new PhysicalFolder("","webroot",0,NULL);
+	physical_webroot = new PhysicalFolder("","webroot",0,nullptr);
 	mimeTypesFile = "mimetypes.conf";
 	defaultCharset = "ISO-8859-1";
 	bDebugLog = debuglog_off;
 	maxConnections = 8;
 }
 
-void Settings::load(string filePath){
-	string line,varName,varValue;
+void Settings::load(std::string filePath){
+	std::string line, varName, varValue;
 	int fileVersion = 0;
-	ifstream file(filePath.c_str());
+	std::ifstream file(filePath.c_str());
 	if (file.is_open()){
 		while(!file.eof()){
 			getline(file,line);
@@ -80,7 +78,7 @@ void Settings::load(string filePath){
 	}
 }
 
-void Settings::save(string filePath){
+void Settings::save(std::string filePath){
 	FILE *file;
 	fopen_s(&file,filePath.c_str(),"w");
 	fprintf(file, "#Settings file version\n");

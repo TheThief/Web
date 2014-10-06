@@ -1,6 +1,7 @@
 #pragma once
 
 #include <winsock2.h>
+#include "dynamic_array.h"
 #include "dynamic_string.h"
 
 class HTTPHeader
@@ -8,7 +9,7 @@ class HTTPHeader
 public:
 	dynamic_string Header;
 	dynamic_string Value;
-	HTTPHeader(dynamic_string _Header=NULL, dynamic_string _Value=NULL)
+	HTTPHeader(dynamic_string _Header=nullptr, dynamic_string _Value=nullptr)
 		: Header(_Header), Value(_Value) { };
 };
 

@@ -48,6 +48,9 @@
     <ClInclude Include="include\virtual_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\dynamic_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Web.rc">

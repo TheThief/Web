@@ -169,6 +169,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\auto_ptr.h" />
+    <ClInclude Include="include\dynamic_array.h" />
     <ClInclude Include="include\dynamic_string.h" />
     <ClInclude Include="include\filetree.h" />
     <ClInclude Include="include\HTTPResponse.h" />

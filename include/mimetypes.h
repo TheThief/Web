@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <map>
-using namespace std;
 
 class Mimetypes{
 public:
@@ -10,6 +9,6 @@ public:
 	std::string getType(std::string extension);
 	std::string getSubType(std::string extension);
 private:
-	map<string,string> typeMap;
+	std::map<std::string, std::string> typeMap;
 	std::string strToLower(std::string str);
 };

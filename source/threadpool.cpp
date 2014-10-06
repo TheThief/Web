@@ -33,10 +33,10 @@ void InitThreadPool()
 	GetSystemInfo(&sysinfo);
 
 	MasterFiberTlsIndex = TlsAlloc();
-	IOCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, sysinfo.dwNumberOfProcessors);
+	IOCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, sysinfo.dwNumberOfProcessors);
 	for (int i = 0; i < (int)sysinfo.dwNumberOfProcessors; i++)
 	{
-		CreateThread(NULL, 4096, &WorkerThreadProc, NULL, 0, NULL);
+		CreateThread(nullptr, 4096, &WorkerThreadProc, nullptr, 0, nullptr);
 	}
 }
 
@@ -57,7 +57,7 @@ void DestroyThreadPool()
 
 DWORD WINAPI WorkerThreadProc(void* lpParameter)
 {
-	void* pMasterFiber = ConvertThreadToFiber(NULL);
+	void* pMasterFiber = ConvertThreadToFiber(nullptr);
 	TlsSetValue(MasterFiberTlsIndex, pMasterFiber);
 
 	while(true)
