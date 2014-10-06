@@ -70,14 +70,14 @@ public:
 		return *this;
 	}
 
-	bool operator ==(const dynamic_string& rhs)
+	bool operator ==(const dynamic_string& rhs) const
 	{
 		return *this == (const char *)rhs;
 	}
 
-	bool operator ==(const char* rhs)
+	bool operator ==(const char* rhs) const
 	{
-		const char* slhs = *this;
+		const char* slhs = (const char *)*this;
 		const char* srhs = rhs;
 		// both empty
 		if (!slhs && !srhs)
@@ -92,26 +92,14 @@ public:
 		return (_stricmp(slhs, srhs) == 0);
 	}
 
-	bool operator !=(const dynamic_string& rhs)
+	bool operator !=(const dynamic_string& rhs) const
 	{
 		return *this != (const char *)rhs;
 	}
 
-	bool operator !=(const char* rhs)
+	bool operator !=(const char* rhs) const
 	{
-		const char* slhs = *this;
-		const char* srhs = rhs;
-		// both empty
-		if (!slhs && !srhs)
-		{
-			return false;
-		}
-		// one set and the other not
-		if (!slhs || !srhs)
-		{
-			return true;
-		}
-		return (_stricmp(slhs, srhs) != 0);
+		return !(*this == rhs);
 	}
 
 	// Including null terminator, in bytes
@@ -184,7 +172,7 @@ public:
 		}
 	}
 
-	operator const char*() const
+	explicit operator const char*() const
 	{
 		if (conststring)
 		{

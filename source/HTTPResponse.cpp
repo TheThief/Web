@@ -32,7 +32,7 @@ void HTTPResponse::sendto(SOCKET s) const
 	}
 #endif
 
-	for (size_t i=0; i<Headers.Num(); i++)
+	for (size_t i = 0; i < Headers.Num(); i++)
 	{
 		n += sprintf_s(send_buffer.get() + n, SEND_BUFFER_LENGTH - n,
 			"%s: %s\r\n", (const char*)Headers[i].Header, (const char*)Headers[i].Value);
@@ -71,7 +71,7 @@ void HTTPResponseHTML::sendto(SOCKET s) const
 	if (_settings.bDebugLog == Settings::debuglog_on
 		|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 	{
-		puts(Content);
+		puts((const char*)Content);
 	}
 #endif
 }
@@ -82,9 +82,9 @@ void HTTPResponseHTML::sendto(SOCKET s) const
 #include <errno.h>
 
 HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, dynamic_string FileName, dynamic_string _ContentType, dynamic_string _ContentSubType)
-	: HTTPResponse(_iStatus,_cpStatus), ContentType(_ContentType), ContentSubType(_ContentSubType)
+	: HTTPResponse(_iStatus, _cpStatus), ContentType(_ContentType), ContentSubType(_ContentSubType)
 {
-	_sopen_s(&FileHandle,FileName,_O_BINARY|_O_RDONLY|_O_SEQUENTIAL,_SH_DENYWR,0);
+	_sopen_s(&FileHandle, (const char*)FileName, _O_BINARY | _O_RDONLY | _O_SEQUENTIAL, _SH_DENYWR, 0);
 
 	dynamic_string sContentTypeHeader = dynamic_string::printf("%s/%s", (const char*)ContentType, (const char*)ContentSubType);
 	if (ContentType == "Text")
@@ -99,7 +99,7 @@ HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, d
 }
 
 HTTPResponseFile::HTTPResponseFile(__int16 _iStatus, dynamic_string _cpStatus, int _FileHandle, dynamic_string _ContentType, dynamic_string _ContentSubType)
-	: HTTPResponse(_iStatus,_cpStatus), FileHandle(_FileHandle), ContentType(_ContentType), ContentSubType(_ContentSubType)
+	: HTTPResponse(_iStatus, _cpStatus), FileHandle(_FileHandle), ContentType(_ContentType), ContentSubType(_ContentSubType)
 {
 	dynamic_string sContentTypeHeader = dynamic_string::printf("%s/%s", (const char*)ContentType, (const char*)ContentSubType);
 	if (ContentType == "Text")
@@ -127,7 +127,7 @@ void HTTPResponseFile::sendto(SOCKET s) const
 	if (_settings.bDebugLog == Settings::debuglog_on
 		|| _settings.bDebugLog == Settings::debuglog_errors && iStatus >= 300)
 	{
-		bText = ( memcmp(ContentType,"text",5) == 0 );
+		bText = (memcmp((const char*)ContentType, "text", 5) == 0);
 		if (!bText)
 		{
 			puts("--Non-text-data--");

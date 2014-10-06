@@ -67,7 +67,7 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string host, const char*
 		FileName += partialfile;
 
 		// _stat?
-		int attrib = GetFileAttributesA(FileName);
+		int attrib = GetFileAttributesA((LPCSTR)FileName);
 		if (attrib == INVALID_FILE_ATTRIBUTES)
 		{
 			int iError = GetLastError();
@@ -99,7 +99,7 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string host, const char*
 			}
 		}
 
-		errno_t err = _sopen_s(&FileHandle, FileName, _O_BINARY|_O_RDONLY|_O_SEQUENTIAL, _SH_DENYWR, 0);
+		errno_t err = _sopen_s(&FileHandle, (const char*)FileName, _O_BINARY|_O_RDONLY|_O_SEQUENTIAL, _SH_DENYWR, 0);
 		if (err == EACCES)
 		{
 			return &status403;
@@ -108,7 +108,7 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string host, const char*
 		{
 			dynamic_string fileext;
 			fileext.SetWritableBufferLen(32);
-			_splitpath_s(FileName, nullptr, 0, nullptr, 0, nullptr, 0, fileext.GetWritableBuffer(), fileext.MaxSize());
+			_splitpath_s((const char*)FileName, nullptr, 0, nullptr, 0, nullptr, 0, fileext.GetWritableBuffer(), fileext.MaxSize());
 			fileext.Normalize();
 			return new HTTPResponseFile(200, "OK", FileHandle, _mimetypes.getType((const char*)fileext), _mimetypes.getSubType((const char*)fileext));
 		}

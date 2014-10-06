@@ -407,7 +407,7 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 		if (headers[i].Header == "Host")
 		{
 			fullhost = headers[i].Value;
-			host = dynamic_string(headers[i].Value, strcspn(headers[i].Value, ":"));
+			host = dynamic_string((const char*)headers[i].Value, strcspn((const char*)headers[i].Value, ":"));
 			goto foundhost;
 		}
 	}
@@ -442,12 +442,12 @@ validhost:
 	}
 
 	// This is just a little bit hacky...
-	if (strstr(URL, "/../"))
+	if (strstr((const char*)URL, "/../"))
 	{
 		senderror(status400);
 		return false;
 	}
-	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(fullhost, URL, URL, sock);
+	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(fullhost, (const char*)URL, (const char*)URL, sock);
 	//if (HTTPVersion == "HTTP/1.0" && keepalive)
 	//{
 	//	if (pResponse->iStatus == 200 || pResponse->iStatus == 301)
