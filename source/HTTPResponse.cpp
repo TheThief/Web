@@ -63,12 +63,12 @@ void HTTPResponseNoContent::sendto(SOCKET s) const
 	HTTPResponse::sendto(s);
 }
 
-HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content)
-	: HTTPResponse(_iStatus, _cpStatus), iContentLength(_iContentLength), Content(_Content)
+HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, dynamic_string _Content)
+	: HTTPResponse(_iStatus, _cpStatus), Content(_Content)
 {
 	dynamic_string sContentTypeHeader = dynamic_string::printf("text/html; charset=%s", _settings.defaultCharset.c_str());
 	Headers.AddItem(HTTPHeader("Content-Type", sContentTypeHeader));
-	dynamic_string sContentLength = dynamic_string::printf("%d", iContentLength);
+	dynamic_string sContentLength = dynamic_string::printf("%d", _Content.Len());
 	Headers.AddItem(HTTPHeader("Content-Length", sContentLength));
 };
 
@@ -76,7 +76,7 @@ void HTTPResponseHTML::sendto(SOCKET s) const
 {
 	HTTPResponse::sendto(s);
 	DWORD dwBytes = 0;
-	Fiber_Send(s, (void*)(const char*)Content, iContentLength, &dwBytes, 0);
+	Fiber_Send(s, (void*)(const char*)Content, Content.Len(), &dwBytes, 0);
 
 #if _DEBUG
 	if (_settings.bDebugLog == Settings::debuglog_on

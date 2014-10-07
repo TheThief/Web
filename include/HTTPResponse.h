@@ -38,11 +38,11 @@ public:
 class HTTPResponseHTML : public HTTPResponse
 {
 protected:
-	long iContentLength;
 	dynamic_string Content;
 
 public:
-	HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content);
+	HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, dynamic_string _Content);
+
 	virtual void sendto(SOCKET s) const;
 };
 

@@ -4,64 +4,15 @@
 #include <memory>
 #include <utility>
 
+#include <dynamic_ptr.h>
+
 typedef unsigned char byte;
 
-#if __cpp_lib_shared_ptr_arrays // I'm guessing here
-using std::shared_ptr;
-using std::make_shared;
-#elif __cpp_lib_experimental_shared_ptr_arrays
-#include <experimental/memory>
-using std::shared_ptr;
-using std::make_shared;
-#else
-template<typename T>
-class shared_ptr : public std::shared_ptr<T>
-{
-public:
-	using std::shared_ptr<T>::shared_ptr;
-	using std::shared_ptr<T>::operator =;
-};
-
-template<typename T>
-class shared_ptr<T[]> : public std::shared_ptr<T>
-{
-public:
-	using std::shared_ptr<T>::shared_ptr;
-	using std::shared_ptr<T>::operator =;
-
-	shared_ptr<T[]>& operator=(nullptr_t)
-	{
-		(std::shared_ptr<T>&)*this = nullptr;
-
-		return *this;
-	}
-
-	element_type& operator[](ptrdiff_t i) const noexcept
-	{
-		return get()[i];
-	}
-};
-
-template<typename T, typename... Types>
-std::enable_if_t<!std::is_array<T>::value, shared_ptr<T>>
-	make_shared(Types&&... Args)
-{
-	return std::make_shared<T>(std::forward<Types>(Args)...);
-}
-
-template<typename T>
-std::enable_if_t<std::is_array<T>::value, shared_ptr<T>>
-	make_shared(size_t count)
-{
-	return shared_ptr<T>(new std::remove_extent<T>::type[count], std::default_delete<T>());
-}
-#endif
-
-template <class T>
+template <typename T>
 class dynamic_array
 {
 protected:
-	shared_ptr<byte[]> ptr;
+	shared_array<byte> ptr;
 	size_t iNum;
 	size_t iMax;
 public:
@@ -122,7 +73,7 @@ public:
 			}
 			else
 			{
-				shared_ptr<byte[]> ptrNew = make_shared<byte[]>(iMax * sizeof(T));
+				shared_array<byte> ptrNew = make_shared_array<byte>(iMax * sizeof(T));
 				if (ptr)
 				{
 					if (iNum > 0)
@@ -179,7 +130,7 @@ public:
 			else
 			{
 				iMax = iNum + iSlack;
-				shared_ptr<byte[]> ptrNew = make_shared<byte[]>(iMax * sizeof(T));
+				shared_array<byte> ptrNew = make_shared_array<byte>(iMax * sizeof(T));
 				if (ptr)
 				{
 					// todo: copy-construct T

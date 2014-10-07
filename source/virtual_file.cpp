@@ -11,35 +11,35 @@
 const char* pDefaultFile = "index.html";
 extern Mimetypes _mimetypes;
 
-const HTTPResponse* VirtualFolder::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
+dynamic_ptr<HTTPResponse> VirtualFolder::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
-	if (pPartialPath[0]!='/')
+	if (pPartialPath[0] != '/')
 	{
 		// Needs changing to a "301 Permenantly Moved"
-		return &status404;
+		return status404;
 	}
 
 	pPartialPath++;
-	size_t iNameLen = strcspn(pPartialPath,"?");
+	size_t iNameLen = strcspn(pPartialPath, "?");
 
-	if (iNameLen==0)
+	if (iNameLen == 0)
 	{
 		pPartialPath = pDefaultFile;
-		iNameLen = strcspn(pPartialPath,"?");
+		iNameLen = strcspn(pPartialPath, "?");
 	}
 
-	for(int i=0; i<iNumSubObjects; i++)
+	for (int i = 0; i < iNumSubObjects; i++)
 	{
-		if (strlen(ppSubObjects[i]->Name)<=iNameLen)
+		if (strlen(ppSubObjects[i]->Name) <= iNameLen)
 		{
-			if (strncmp(pPartialPath, ppSubObjects[i]->Name, iNameLen)==0)
+			if (strncmp(pPartialPath, ppSubObjects[i]->Name, iNameLen) == 0)
 			{
-				return ppSubObjects[i]->GetFromPath(method, host, pFullPath, pPartialPath+iNameLen, s);
+				return ppSubObjects[i]->GetFromPath(method, host, pFullPath, pPartialPath + iNameLen, s);
 			}
 		}
 	}
 
-	return &status404;
+	return status404;
 }
 
 #include <fcntl.h>
@@ -48,19 +48,19 @@ const HTTPResponse* VirtualFolder::GetFromPath(dynamic_string method, dynamic_st
 #include <errno.h>
 extern void error(char *msg);
 
-const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
+dynamic_ptr<HTTPResponse> PhysicalFolder::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
-	if (pPartialPath[0]!='/')
+	if (pPartialPath[0] != '/')
 	{
 		// Needs changing to a "301 Permenantly Moved"
-		return &status404;
+		return status404;
 	}
 
-	const HTTPResponse* pResponse = VirtualFolder::GetFromPath(method, host, pFullPath, pPartialPath, s);
-	if (pResponse == &status404)
+	dynamic_ptr<HTTPResponse> Response = VirtualFolder::GetFromPath(method, host, pFullPath, pPartialPath, s);
+	if (Response->iStatus == 404)
 	{
-		dynamic_string partialfile(pPartialPath, strcspn(pPartialPath,"?"));
-		dynamic_string fullfile(pFullPath, strcspn(pFullPath,"?"));
+		dynamic_string partialfile(pPartialPath, strcspn(pPartialPath, "?"));
+		dynamic_string fullfile(pFullPath, strcspn(pFullPath, "?"));
 
 		int FileHandle;
 		dynamic_string FileName = FilePath;
@@ -73,11 +73,11 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string method, dynamic_s
 			int iError = GetLastError();
 			if (iError == ERROR_FILE_NOT_FOUND || iError == ERROR_PATH_NOT_FOUND)
 			{
-				return &status404;
+				return status404;
 			}
 			else if (iError == ERROR_ACCESS_DENIED)
 			{
-				return &status403;
+				return status403;
 			}
 			else
 			{
@@ -89,9 +89,9 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string method, dynamic_s
 		{
 			if (FileName[FileName.Len() - 1] != '/')
 			{
-				HTTPResponse* pResponse301 = new HTTPResponseHTML(status301);
-				pResponse301->Headers.AddItem(HTTPHeader("Location", dynamic_string("http://") + host + fullfile + "/"));
-				return pResponse301;
+				std::shared_ptr<HTTPResponse> Response301 = std::make_shared<HTTPResponseHTML>(status301);
+				Response301->Headers.AddItem(HTTPHeader("Location", dynamic_string("http://") + host + fullfile + "/"));
+				return std::move(Response301);
 			}
 			else
 			{
@@ -99,10 +99,10 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string method, dynamic_s
 			}
 		}
 
-		errno_t err = _sopen_s(&FileHandle, (const char*)FileName, _O_BINARY|_O_RDONLY|_O_SEQUENTIAL, _SH_DENYWR, 0);
+		errno_t err = _sopen_s(&FileHandle, (const char*)FileName, _O_BINARY | _O_RDONLY | _O_SEQUENTIAL, _SH_DENYWR, 0);
 		if (err == EACCES)
 		{
-			return &status403;
+			return status403;
 		}
 		if (err == 0)
 		{
@@ -110,31 +110,31 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string method, dynamic_s
 			fileext.SetWritableBufferLen(32);
 			_splitpath_s((const char*)FileName, nullptr, 0, nullptr, 0, nullptr, 0, fileext.GetWritableBuffer(), fileext.MaxSize());
 			fileext.Normalize();
-			return new HTTPResponseFile(200, "OK", FileHandle, _mimetypes.getType((const char*)fileext), _mimetypes.getSubType((const char*)fileext));
+			return std::make_shared<HTTPResponseFile>(200, "OK", FileHandle, _mimetypes.getType((const char*)fileext), _mimetypes.getSubType((const char*)fileext));
 		}
 		else if (err == ENOENT)
 		{
-			return &status404;
+			return status404;
 		}
 		else
 		{
-			return &status500;
+			return status500;
 		}
 	}
 	else
 	{
-		return pResponse;
+		return Response;
 	}
 }
 
-const HTTPResponse* VirtualFile::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
+dynamic_ptr<HTTPResponse> VirtualFile::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
-	size_t iNameLen = strcspn(pPartialPath,"?");
+	size_t iNameLen = strcspn(pPartialPath, "?");
 
-	if (iNameLen==0)
+	if (iNameLen == 0)
 	{
-		return new HTTPResponseFile(200, "OK", FilePath, ContentType, ContentSubType);
+		return std::make_shared<HTTPResponseFile>(200, "OK", FilePath, ContentType, ContentSubType);
 	}
 
-	return &status404;
+	return status404;
 }

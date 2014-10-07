@@ -463,7 +463,7 @@ validhost:
 		senderror(status400);
 		return false;
 	}
-	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(method, fullhost, (const char*)URL, (const char*)URL, sock);
+	dynamic_ptr<HTTPResponse> Response = _settings.getVirtualFolder()->GetFromPath(method, fullhost, (const char*)URL, (const char*)URL, sock);
 	//if (HTTPVersion == "HTTP/1.0" && keepalive)
 	//{
 	//	if (pResponse->iStatus == 200 || pResponse->iStatus == 301)
@@ -472,16 +472,10 @@ validhost:
 	//	}
 	//}
 	if (_settings.bDebugLog == Settings::debuglog_on
-		|| _settings.bDebugLog == Settings::debuglog_errors && pResponse->iStatus >= 300)
+		|| _settings.bDebugLog == Settings::debuglog_errors && Response->iStatus >= 300)
 		printf("%x:\n%s", sock, buffer);
 
-	pResponse->sendto(sock);
-
-	// this is a hack...
-	if (pResponse->iStatus == 200 || pResponse->iStatus == 301)
-	{
-		delete pResponse;
-	}
+	Response->sendto(sock);
 
 	return keepalive;
 }
