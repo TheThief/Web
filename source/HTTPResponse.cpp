@@ -52,6 +52,17 @@ void HTTPResponse::sendto(SOCKET s) const
 	Fiber_Send(s, send_buffer.get(), n, &dwBytes, 0);
 }
 
+HTTPResponseNoContent::HTTPResponseNoContent(__int16 _iStatus, dynamic_string _cpStatus)
+	: HTTPResponse(_iStatus, _cpStatus)
+{
+	Headers.AddItem(HTTPHeader("Content-Length", "0"));
+};
+
+void HTTPResponseNoContent::sendto(SOCKET s) const
+{
+	HTTPResponse::sendto(s);
+}
+
 HTTPResponseHTML::HTTPResponseHTML(__int16 _iStatus, dynamic_string _cpStatus, long _iContentLength, dynamic_string _Content)
 	: HTTPResponse(_iStatus, _cpStatus), iContentLength(_iContentLength), Content(_Content)
 {

@@ -331,19 +331,19 @@ bool dostuff(FiberData_Socket* pFiberData, SOCKET sock)
 	dynamic_string URL(splitpoint[0] + 1, splitpoint[1] - (splitpoint[0] + 1));
 	dynamic_string HTTPVersion(splitpoint[1] + 1, splitpoint[2] - (splitpoint[1] + 1));
 
-	if (method != "GET" && method != "HEAD")
-	{
-		senderror(status501);
-		return false;
-	}
-
 	if (HTTPVersion != "HTTP/1.0" && HTTPVersion != "HTTP/1.1")
 	{
-		senderror(status505);
+		status505.sendto(sock);
 		return false;
 	}
 
-	if (URL.Len() <= 0 || URL[0] != '/')
+	if (method != "GET" && method != "HEAD" && method != "OPTIONS")
+	{
+		status501.sendto(sock);
+		return false;
+	}
+
+	if (URL.Len() <= 0 || !(URL[0] == '/' || (method == "OPTIONS" && URL == "*")))
 	{
 		senderror(status400);
 		return false;
@@ -441,13 +441,29 @@ validhost:
 		}
 	}
 
+	if (method == "OPTIONS")
+	{
+		if(URL == "*")
+		{
+			HTTPResponseNoContent optionsstar(status200);
+			optionsstar.Headers.AddItem(HTTPHeader("Allow", "GET,HEAD,OPTIONS"));
+			optionsstar.sendto(sock);
+			return keepalive;
+		}
+		else
+		{
+			status405.sendto(sock);
+			return false;
+		}
+	}
+
 	// This is just a little bit hacky...
 	if (strstr((const char*)URL, "/../"))
 	{
 		senderror(status400);
 		return false;
 	}
-	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(fullhost, (const char*)URL, (const char*)URL, sock);
+	const HTTPResponse* pResponse = _settings.getVirtualFolder()->GetFromPath(method, fullhost, (const char*)URL, (const char*)URL, sock);
 	//if (HTTPVersion == "HTTP/1.0" && keepalive)
 	//{
 	//	if (pResponse->iStatus == 200 || pResponse->iStatus == 301)

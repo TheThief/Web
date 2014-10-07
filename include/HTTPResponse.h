@@ -28,6 +28,13 @@ public:
 	virtual ~HTTPResponse() { };
 };
 
+class HTTPResponseNoContent : public HTTPResponse
+{
+public:
+	HTTPResponseNoContent(__int16 _iStatus, dynamic_string _cpStatus);
+	virtual void sendto(SOCKET s) const;
+};
+
 class HTTPResponseHTML : public HTTPResponse
 {
 protected:

@@ -2,6 +2,8 @@
 
 #include "HTTPResponse.h"
 
+const HTTPResponseNoContent status200(200, "OK");
+
 char status301content[] =
 	"<html>\r\n"
 	"<body>\r\n"
@@ -55,6 +57,15 @@ char status404content[] =
 	"</body>\r\n"
 	"</html>\r\n";
 const HTTPResponseHTML status404(404, "File Not Found", sizeof(status404content)-1, status404content);
+
+char status405content[] =
+	"<html>\r\n"
+	"<body>\r\n"
+	"<h1>405 Method Not Allowed</h1>\r\n"
+	"<p>OPTIONS is currently only supported for *</p>\r\n"
+	"</body>\r\n"
+	"</html>\r\n";
+const HTTPResponseHTML status405(405, "Method Not Allowed", sizeof(status405content)-1, status405content);
 
 char status413content[] =
 	"<html>\r\n"

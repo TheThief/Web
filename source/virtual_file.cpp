@@ -11,7 +11,7 @@
 const char* pDefaultFile = "index.html";
 extern Mimetypes _mimetypes;
 
-const HTTPResponse* VirtualFolder::GetFromPath(dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
+const HTTPResponse* VirtualFolder::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
 	if (pPartialPath[0]!='/')
 	{
@@ -34,7 +34,7 @@ const HTTPResponse* VirtualFolder::GetFromPath(dynamic_string host, const char* 
 		{
 			if (strncmp(pPartialPath, ppSubObjects[i]->Name, iNameLen)==0)
 			{
-				return ppSubObjects[i]->GetFromPath(host, pFullPath, pPartialPath+iNameLen, s);
+				return ppSubObjects[i]->GetFromPath(method, host, pFullPath, pPartialPath+iNameLen, s);
 			}
 		}
 	}
@@ -48,7 +48,7 @@ const HTTPResponse* VirtualFolder::GetFromPath(dynamic_string host, const char* 
 #include <errno.h>
 extern void error(char *msg);
 
-const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
+const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
 	if (pPartialPath[0]!='/')
 	{
@@ -56,7 +56,7 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string host, const char*
 		return &status404;
 	}
 
-	const HTTPResponse* pResponse = VirtualFolder::GetFromPath(host, pFullPath, pPartialPath, s);
+	const HTTPResponse* pResponse = VirtualFolder::GetFromPath(method, host, pFullPath, pPartialPath, s);
 	if (pResponse == &status404)
 	{
 		dynamic_string partialfile(pPartialPath, strcspn(pPartialPath,"?"));
@@ -127,7 +127,7 @@ const HTTPResponse* PhysicalFolder::GetFromPath(dynamic_string host, const char*
 	}
 }
 
-const HTTPResponse* VirtualFile::GetFromPath(dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
+const HTTPResponse* VirtualFile::GetFromPath(dynamic_string method, dynamic_string host, const char* pFullPath, const char* pPartialPath, SOCKET s) const
 {
 	size_t iNameLen = strcspn(pPartialPath,"?");
 
