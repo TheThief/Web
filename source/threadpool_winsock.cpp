@@ -1,6 +1,8 @@
 //#include <winsock2.h>
 #include "threadpool_winsock.h"
 
+#include <cassert>
+
 //TODO: Fix hack
 extern LPFN_ACCEPTEX pAcceptEx;
 extern LPFN_DISCONNECTEX pDisconnectEx;
@@ -11,10 +13,22 @@ BOOL Fiber_AcceptEx(SOCKET sListenSocket, SOCKET sAcceptSocket, PVOID lpOutputBu
 	FiberData* pFiberData = (FiberData*)GetFiberData();
 	pFiberData->ResetOverlapped();
 
-	if (!pAcceptEx(sListenSocket, sAcceptSocket, lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength, dwRemoteAddressLength, lpdwBytesReceived, pFiberData))
+	while (1)
 	{
-		if (WSAGetLastError() != ERROR_IO_PENDING)
-			return FALSE;
+		if (pAcceptEx(sListenSocket, sAcceptSocket, lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength, dwRemoteAddressLength, lpdwBytesReceived, pFiberData))
+		{
+			assert(0);
+			break; // can this happen with an overlapped socket?
+		}
+		else
+		{
+			if (WSAGetLastError() == WSAECONNRESET)
+				continue; // try again
+			else if (WSAGetLastError() == ERROR_IO_PENDING)
+				break;
+			else
+				return FALSE; // serious error
+		}
 	}
 
 	Fiber_YieldForIO();
@@ -31,7 +45,12 @@ BOOL Fiber_DisconnectEx(SOCKET s, DWORD dwFlags)
 	FiberData* pFiberData = (FiberData*)GetFiberData();
 	pFiberData->ResetOverlapped();
 
-	if (!pDisconnectEx(s, pFiberData, dwFlags, 0))
+	if (pDisconnectEx(s, pFiberData, dwFlags, 0))
+	{
+		assert(0);
+		return TRUE; // can this happen with an overlapped socket?
+	}
+	else
 	{
 		if (WSAGetLastError() != ERROR_IO_PENDING)
 			return FALSE;
@@ -55,7 +74,11 @@ BOOL Fiber_Recv(SOCKET s, PVOID lpOutputBuffer, DWORD dwReceiveDataLength, LPDWO
 	WSABUF buffer;
 	buffer.buf = (CHAR*)lpOutputBuffer;
 	buffer.len = dwReceiveDataLength;
-	if (WSARecv(s, &buffer, 1, lpNumberOfBytesRecvd, lpFlags, pFiberData, nullptr) == SOCKET_ERROR)
+	if (WSARecv(s, &buffer, 1, lpNumberOfBytesRecvd, lpFlags, pFiberData, nullptr) == 0)
+	{
+		return TRUE;
+	}
+	else // SOCKET_ERROR
 	{
 		if (WSAGetLastError() != ERROR_IO_PENDING)
 			return FALSE;
@@ -77,7 +100,11 @@ BOOL Fiber_Send(SOCKET s, PVOID lpInputBuffer, DWORD dwSendDataLength, LPDWORD l
 	WSABUF buffer;
 	buffer.buf = (CHAR*)lpInputBuffer;
 	buffer.len = dwSendDataLength;
-	if (WSASend(s, &buffer, 1, lpNumberOfBytesSent, dwFlags, pFiberData, nullptr) == SOCKET_ERROR)
+	if (WSASend(s, &buffer, 1, lpNumberOfBytesSent, dwFlags, pFiberData, nullptr) == 0)
+	{
+		return TRUE;
+	}
+	else // SOCKET_ERROR
 	{
 		if (WSAGetLastError() != ERROR_IO_PENDING)
 			return FALSE;
@@ -96,7 +123,12 @@ BOOL Fiber_TransmitFile(SOCKET hSocket, HANDLE hFile, DWORD nNumberOfBytesToWrit
 	FiberData* pFiberData = (FiberData*)GetFiberData();
 	pFiberData->ResetOverlapped();
 
-	if (!pTransmitFile(hSocket, hFile, nNumberOfBytesToWrite, nNumberOfBytesPerSend, pFiberData, lpTransmitBuffers, 0))
+	if (pTransmitFile(hSocket, hFile, nNumberOfBytesToWrite, nNumberOfBytesPerSend, pFiberData, lpTransmitBuffers, 0))
+	{
+		assert(0);
+		return TRUE; // can this happen with an overlapped socket?
+	}
+	else // SOCKET_ERROR
 	{
 		if (WSAGetLastError() != ERROR_IO_PENDING)
 			return FALSE;

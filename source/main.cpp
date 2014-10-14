@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0600
+//#define IPV6STRICT 1
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <MSWSock.h>
@@ -105,7 +106,7 @@ void GetWinsockExtensions(SOCKET socket)
 		&dwBytes, 0, 0);
 }
 
-SOCKET listensock, listensock6;
+SOCKET listensock6 = INVALID_SOCKET;
 
 int main(int argc, char *argv[])
 {
@@ -129,35 +130,19 @@ int main(int argc, char *argv[])
 	if (wsaData.wVersion != MAKEWORD(2, 2))
 		error("ERROR initializing Winsock: Incompatible version");
 
-	struct sockaddr_in serv_addr;
-	struct sockaddr_in6 serv_addr6;
-
-	// IPv4
-	listensock = WSASocket(AF_INET, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
-	if (listensock == INVALID_SOCKET)
-	{
-		puts("Couldn't open IPv4 socket");
-	}
-	else
-	{
-		ZeroMemory(&serv_addr, sizeof(serv_addr));
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_addr.s_addr = INADDR_ANY;
-		serv_addr.sin_port = htons(_settings.port);
-		if (bind(listensock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-			error("ERROR on binding");
-		if (listen(listensock, 5) < 0)
-			error("ERROR on listening");
-	}
-
-	// IPv6
-	listensock6 = WSASocket(AF_INET6, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
+	// Dual-mode IPv6
+	listensock6 = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
 	if (listensock6 == INVALID_SOCKET)
 	{
 		puts("Couldn't open IPv6 socket");
 	}
 	else
 	{
+		int off = 0;
+		if (setsockopt(listensock6, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&off, sizeof(off)) == SOCKET_ERROR)
+			error("ERROR switching ipv6 socket to dual-mode");
+
+		struct sockaddr_in6 serv_addr6;
 		ZeroMemory(&serv_addr6, sizeof(serv_addr6));
 		serv_addr6.sin6_family = AF_INET6;
 		serv_addr6.sin6_addr = in6addr_any;
@@ -168,31 +153,14 @@ int main(int argc, char *argv[])
 			error("ERROR on listening");
 	}
 
-	if (listensock == INVALID_SOCKET && listensock6 == INVALID_SOCKET)
+	if (listensock6 == INVALID_SOCKET)
 		error("Couldn't open any sockets");
 
-	if (listensock != INVALID_SOCKET)
-	{
-		BindHandle((HANDLE)listensock);
-
-		GetWinsockExtensions(listensock);
-
-		for (int i = 0; i < _settings.maxConnections; i++)
-		{
-			FiberData_Socket* pFiberData = new FiberData_Socket(&FiberProc);
-			pFiberData->listensocket = listensock;
-			pFiberData->addressfamily = AF_INET;
-			QueueFiber(pFiberData);
-		}
-	}
 	if (listensock6 != INVALID_SOCKET)
 	{
 		BindHandle((HANDLE)listensock6);
 
-		if (listensock == INVALID_SOCKET)
-		{
-			GetWinsockExtensions(listensock6);
-		}
+		GetWinsockExtensions(listensock6);
 
 		for (int i = 0; i < _settings.maxConnections; i++)
 		{
@@ -214,6 +182,8 @@ void CALLBACK FiberProc(void* lpParameter)
 
 	SOCKET socket = WSASocket(pFiberData->addressfamily, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
 	BindHandle((HANDLE)socket);
+	if (!SetFileCompletionNotificationModes((HANDLE)socket, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS))
+		error("Set FILE_SKIP_COMPLETION_PORT_ON_SUCCESS Failed");
 
 	while (true)
 	{
@@ -228,22 +198,19 @@ void CALLBACK FiberProc(void* lpParameter)
 			sockaddr* psrv_addr;
 			int cli_addr_len, srv_addr_len;
 			pGetAcceptExSockaddrs(&acceptbuffer, 0, sizeof(sockaddr_storage) + 16, sizeof(sockaddr_storage) + 16, &psrv_addr, &srv_addr_len, &pcli_addr, &cli_addr_len);
-			if (pcli_addr->sa_family == AF_INET)
+
+			dynamic_string address;
+			address.SetWritableBufferLen(INET6_ADDRSTRLEN);
+			if (getnameinfo(pcli_addr, cli_addr_len, address.GetWritableBuffer(), address.MaxSize(), 0, 0, NI_NUMERICHOST) != 0)
+				error("Failed to resolve remote address");
+			address.Normalize();
+			const char* type = pcli_addr->sa_family == AF_INET ? "IPv4" : pcli_addr->sa_family == AF_INET6 ? "IPv6" : "Unknown protocol";
+			if (pcli_addr->sa_family == AF_INET6 && IN6_IS_ADDR_V4MAPPED(&((sockaddr_in6*)pcli_addr)->sin6_addr))
 			{
-				const struct sockaddr_in& cli_addr4 = (sockaddr_in&)*pcli_addr;
-				char address[INET_ADDRSTRLEN] = "";
-				inet_ntop(AF_INET, (PVOID)&cli_addr4.sin_addr, address, sizeof(address));
-				printf("%x: IPv4 connection from %s\n", socket, address);
+				address = dynamic_string((const char*)address + 7, address.Len() - 7); // HAAACK hack, should use IN6_GET_ADDR_V4MAPPED
+				type = "IPv4";
 			}
-			else if (pcli_addr->sa_family == AF_INET6)
-			{
-				const struct sockaddr_in6& cli_addr6 = (sockaddr_in6&)*pcli_addr;
-				char address[INET6_ADDRSTRLEN] = "";
-				inet_ntop(AF_INET6, (PVOID)&cli_addr6.sin6_addr, address, sizeof(address));
-				printf("%x: IPv6 connection from [%s]\n", socket, address);
-			}
-			else
-				error("Bad socket in accept");
+			printf("%x: %s connection from [%s]\n", socket, type, (const char*)address);
 		}
 
 		while (dostuff(pFiberData, socket))
